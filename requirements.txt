@@ -1,0 +1,8 @@
+flask
+jinja2>=3.0.2
+markupSafe>=2.0.1
+pymongo>=4.1.1
+
+# Automated tests
+pytest>=3.0.5
+pytest-cov>=2.4.0
