@@ -2,32 +2,24 @@ version: '3'
 
 services:
   app:
-    env_file:
-        - .env
     build: 
       context: .
     command: python -u app.py
     volumes:
       - .:/app
     ports:
-      - "5001:5000"
-  
-  mysql:
-    image: mysql:8.0.31
-    tty: true
-    env_file:
-      - .env
-    ports:
-      - "3306:3306"
-    environment:
-      MYSQL_DATABASE: ${DB_DATABASE}
-      MYSQL_USER: ${DB_USERNAME}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      SERVICE_TAGS: dev
-      SERVICE_NAME: mysql
+      -  "5001:5000"
+    links:
+      - db
 
-networks:
-  default:
-    name: example-network
-    driver: bridge
+  db:
+    image: mongo:latest
+    hostname: project_mongodb
+    environment:
+      - MONGO_INITDB_DATABASE = user_db
+      - MONGO_INITDB_USERNAME = root
+      - MONGO_INITDB_PASSWORD = pass 
+    volumes:
+      - ./init-fb.js:/docker-entrypoint-initdb.d/init-db.js:ro
+    ports:
+      - "27017:27017"
