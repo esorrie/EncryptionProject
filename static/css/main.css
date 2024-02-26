@@ -1,3 +1,217 @@
 /*
 ! tailwindcss v3.4.1 | MIT License | https://tailwindcss.com
 */
+.active {
+    /* (!important) overrides any previous 
+    formats that usually take priority */
+    color: #ff5935!important; 
+    font-weight: 800;
+}
+body {
+    background: linear-gradient(0deg, #000000, #000000);
+    margin: 0px;
+    padding: 0px;
+}
+.fade {
+    background: linear-gradient(180deg, #000 20%, #333 70%, #666);
+}
+.flexcenter {
+    display: flex;
+    align-items: center;
+}
+.flexstretch {
+    display: flex;
+    align-items: stretch;
+}
+.pagination {
+    color: white;
+    text-decoration: none;
+}
+.background {
+    background: rgba(74, 74, 74, 1);
+}
+
+.padding {
+    padding: 16px;
+}
+.smallpadding {
+    padding: 10px 8px 10px 8px;
+
+}
+.border {
+    border: 1px solid rgba(74, 74, 74, 1);
+}
+.bordertop {
+    border: 1px solid rgba(74, 74, 74, 1);
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.borderbottom {
+    border: 1px solid rgba(74, 74, 74, 1);
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+.grey {
+    color: rgba(255, 255, 255, 0.5);
+}
+.grey a{
+    color: rgb(255, 255, 255, 0.5);
+    text-decoration: none;
+}
+.orange {
+    color: #ff5935;
+}
+.orange a {
+    color: #ff5935;
+    text-decoration: none;
+}
+.text {
+    color: white;
+    font-size: 18px;
+}
+.text a {
+    text-decoration: none;
+    color: white;
+}
+.heading {
+    display: flex;
+    width: 806px;
+    align-items: center;
+    align-self: stretch;
+}
+.subheading {
+    display: flex;
+    width: 840px;
+    height: 20px;
+    
+    align-items: flex-start;
+    align-self: stretch;
+}
+.game {
+    width: 806px;
+    height: 140px;
+    display: flex;
+    align-self: stretch;   
+}
+.margintop {
+    margin-top: 25px;
+}
+.negmargintop {
+    margin-top: -80px;
+}
+.details {
+    width: 480px;
+}
+
+/* NAVBAR */
+.nav {
+    background:
+    linear-gradient(180deg, rgba(74, 74, 74, 0.2) 60%, rgba(0, 0, 0, 0) 100%);
+    
+    height: 64px;
+    border: 1px solid rgba(74, 74, 74, 1);
+    padding-left: 56px;
+    
+    display: flex;
+    justify-content: space-between;
+}
+
+.menu {
+    display: flex;
+    flex-wrap: wrap; /* stops entities from being off the page */
+    align-items: center; /* formats to the center of the container height */
+}
+
+.nav .card1 {
+    padding-right: 56px;
+    font-size: 23px;
+}
+.nav .card1 a {
+    text-decoration: none;
+    color: rgb(255, 255, 255);
+    ;
+}
+
+.nav .card2 {
+    padding-right: 10px;
+    font-size: 15px;
+}
+.nav .card2 a {
+    text-decoration: none;
+    color: rgb(255, 255, 255, 0.5);
+    
+}
+
+.nav .card3 {
+    padding: 0px 10px 0px;
+    font-size: 15px;
+}
+.nav .card3 a {
+    text-decoration: none;
+    color: rgba(255, 255, 255, 0.5);
+    
+}
+.card4 {
+    float: right;
+    border: none;
+    padding-right: 10px;
+    font-size: 15px;
+    align-self: right; /* formats text to the center side of the page */
+}
+.card4 a {
+    text-decoration: none;
+    color: rgba(255, 255, 255, 0.5);
+}
+.nav .card_searchbar {
+    float: right;
+    padding: 6px;
+    border: none;
+    margin-right: 50px;
+    font-size: 17px;
+    align-self: center; /* formats text to the right side of the page */
+    padding-right: 45px;
+
+}
+
+/* 
+*
+*
+*
+*the HOME page 
+*
+*
+*/
+
+
+/* 
+*
+*
+*
+* LEAGUE INDEX
+*
+*
+*
+*/
+
+.leaguenav {
+    background:
+    linear-gradient(180deg, rgba(74, 74, 74, 0.2) 80%, rgba(0, 0, 0, 0) 100%);
+
+    height: 64px;
+    border: 1px solid rgba(74, 74, 74, 1);
+    padding-left: 56px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+.leaguesdisplay {
+    color: rgb(255, 255, 255);
+    font-size: 20px;
+    padding-right: 20px;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

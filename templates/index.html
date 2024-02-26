@@ -1,13 +1,15 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <title>Encryption Project </title>
-    <link href="{{url_for('static',filename='css/main.css')}}" rel="stylesheet">
-</head>
+{% extends "base.html" %}
 
-<body>
-
-</body>
+    <head>
+        {% block title %}
+            Encryption Project
+        {% endblock %}
+    </head>
+    <body>
+        <div>
+            {% block content %}
+                <h1>Welcome!</h1>
+            {% endblock %} 
+        </div>
+    </body>
 </html>
