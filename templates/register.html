@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+<head>
+    {% block title %}
+        Encryption Project
+    {% endblock %}
+</head>
+<body>
+    <div>
+        {% block content %}
+            <h1>Register</h1>
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                <ul class="messages">
+                    {% for message in messages %}
+                    <li> {{ message }} </li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            {% endwith %}
+            <form method = "post" action = "{{ url_for('register') }}">
+                <label for = "username"> Username: </label>
+                <input type = "text" name = "username" required>
+                <label for = "username"> Email: </label>
+                <input type = "text" name = "email" required>
+                <label for = "username"> Password: </label>
+                <input type = "text" name = "password" required>
+                <button type = "submit"> Register </button>
+            </form>
+        {% endblock %} 
+    </div>
+</body>
+</html>
