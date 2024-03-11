@@ -1,4 +1,5 @@
-from flask import Flask, render_template, jsonify, request, redirect, session, url_for, flash
+from bson import ObjectId
+from flask import Flask, render_template, request, redirect, session, url_for, flash
 from pymongo import MongoClient
 
 app = Flask(__name__)
@@ -24,8 +25,7 @@ def register():
         else:
             users_collection.insert_one({'username': username, 'password': password, 'email': email})
             flash('Registration successful. You can now log in.', 'success')
-            return redirect(url_for('login'))
-
+            return redirect(url_for('login')) # after register redirect to login page
     return render_template('register.html') 
 
 @app.route('/login', methods=['GET', 'POST']) 
@@ -36,26 +36,23 @@ def login():
         
         user = users_collection.find_one({'username': username, 'password': password})
         if user:
-            session['session_id'] = str(user['_id'])
-            flash('Login Successful.', 'success')
-            return redirect(url_for('profile'))
+            session['user_id'] = str(user['_id']) # store's user data
+            return redirect(url_for('profile')) # after login redirect to home page
         else:
             flash('Invalid username or password. Please try again.', 'danger')
     return render_template('login.html') 
 
-
-
 @app.route('/profile')
 def profile():
-    if 'session_id' in session:
-        user = users_collection.find_one({'_id': session['session_id']})
+    if 'user_id' in session:
+        user_id = ObjectId(session['user_id'])
+        user = users_collection.find_one({'_id': user_id})
         if user:
-            return render_template('profile.html', user = user)
+            return render_template('user.html', user = user)
         else:
             return 'User not found', 404
     else:
         return 'Please log in to view profile', 401 
-        
         
 if __name__ == '__main__': 
     app.run(host='0.0.0.0', debug=True) 
