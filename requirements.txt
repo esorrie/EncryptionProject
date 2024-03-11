@@ -1,3 +1,4 @@
 flask 
 pymongo
 pycryptodome>=3.15.0
+bcrypt >= 3.2.0
