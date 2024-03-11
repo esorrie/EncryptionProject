@@ -1,6 +1,7 @@
 from bson import ObjectId
 from flask import Flask, render_template, request, redirect, session, url_for, flash
 from pymongo import MongoClient
+from Crypto.PublicKey import RSA
 
 app = Flask(__name__)
 app.secret_key = "2tc)(h@|HWT4=+8<:ZiUs;(fvd|8;u"
@@ -10,7 +11,7 @@ db = client["project_mongodb"]
 users_collection = db['users']
 
 @app.route('/') 
-def index(): 
+def index():
     return render_template('index.html') 
 
 @app.route('/register', methods=['GET', 'POST']) 
@@ -23,8 +24,17 @@ def register():
         if users_collection.find_one({'username': username}):
             flash('Username already exists. Choose a different one.', 'danger')
         else:
-            users_collection.insert_one({'username': username, 'password': password, 'email': email})
-            flash('Registration successful. You can now log in.', 'success')
+            key = RSA.generate(2048)
+            keyPrivate = key.export_key('PEM')
+            keyPublic = key.publickey().export_key('PEM')
+            users_collection.insert_one({
+                                        'username': username, 
+                                        'password': password,
+                                        'email': email,
+                                        'private_Key': keyPrivate,
+                                        'public_Key': keyPublic
+                                        })
+            
             return redirect(url_for('login')) # after register redirect to login page
     return render_template('register.html') 
 
