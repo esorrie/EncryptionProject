@@ -28,6 +28,7 @@ app.config['IMAGE_FOLDER'] = 'static/images'
 client = MongoClient(host='project_mongodb', port=27017)
 db = client["project_mongodb"]
 users_collection = db['users']
+files_collection = db['files']
 
 class UploadFileForm(FlaskForm):
     file = FileField("File")
@@ -147,8 +148,12 @@ def file_upload(user_id):
             file.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),
                                     app.config['UPLOAD_FOLDER'],
                                     secure_filename(file.filename))) # save file
-            
             filename = secure_filename(file.filename)
+            files_collection.insert_one({
+                "user_id": user_id,
+                "filename": filename
+            })
+            
             return render_template('file-upload.html', user = user, form=form, filename=filename)    
         return render_template('file-upload.html', user = user, form=form)
             
