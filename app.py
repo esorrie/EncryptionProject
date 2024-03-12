@@ -29,6 +29,7 @@ client = MongoClient(host='project_mongodb', port=27017)
 db = client["project_mongodb"]
 users_collection = db['users']
 files_collection = db['files']
+images_collection = db['images']
 
 class UploadFileForm(FlaskForm):
     file = FileField("File")
@@ -157,19 +158,6 @@ def file_upload(user_id):
             return render_template('file-upload.html', user = user, form=form, filename=filename)    
         return render_template('file-upload.html', user = user, form=form)
             
-        # if request.method == 'POST':
-        #     input_file = request.files['file']
-        #     input_file_name = input_file.filename
-        #     input_file.save(os.path.join(app.config['UPLOAD_FOLDER'], input_file_name))
-            
-        #     if input_file.filename == '':
-        #         flash("File not selected")
-        #     else:
-        #         flash("File uploaded successfully!")
-        #         users_collection.update_one({"_id": user_id},
-        #                                     {"$set": {"file_to_encrypt": input_file}})
-        #     return render_template('file-upload.html', user=user, filename=filename) # Pass filename
-            # else:
             #     # File is selected, proceed with encryption
             #     salt = user['aes_salt']
             #     nonce = user['aes_nonce']
@@ -191,13 +179,20 @@ def img_upload(user_id):
     if 'user_id' in session:
         user_id = ObjectId(session['user_id'])
         user = users_collection.find_one({'_id': user_id})
-        if user:
-            return render_template('img-upload.html', user = user)
-        
-        if request.method == 'POST':
-            input_file = request.files['file']
-            input_file.save(input_file.filename)
-
+        form = UploadFileForm()
+        if form.validate_on_submit():
+            file = form.file.data # get file data
+            file.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                                        app.config['IMAGE_FOLDER'], 
+                                        secure_filename(file.filename)))
+            filename = secure_filename(file.filename)
+            images_collection.insert_one({
+                "user_id": user_id,
+                "filename": filename
+            }) 
+            
+            return render_template('img-upload.html', user = user, form=form, filename=filename)    
+        return render_template('img-upload.html', user = user, form=form)
             # if input_file.filename == '':
             #     flash("File not selected")
             # else:
@@ -220,6 +215,4 @@ def img_upload(user_id):
 if __name__ == '__main__': 
     app.run(host='0.0.0.0', debug=True) 
 
-## TODO : After input file selected, move into aesEncrypt function 
-    ## display console logs (maybe already doing) 
-    # easEncryption function returns 'b64_file_out', add this file to database (have dynamic file names)
+## TODO : Prevent image files being stored in the files directory and stop files from being stored in the image directory

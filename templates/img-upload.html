@@ -12,11 +12,14 @@
         <p>Username: {{ user.username }}</p>
         <p>Email: {{ user.email }}</p>
         <body> 
-            <p>File Name: {{name}}</p> 
+            {% if filename %}  
+                <p> File Name: {{ filename }} </p> 
+            {% endif %}
         </body> 
         <form action="/profile/image-upload/{{ user._id }}" method="POST" enctype="multipart/form-data" >
-            <input type="file" name="file" />
-            <button type="submit"> Encrypt and Upload </button>
+            {{ form.hidden_tag() }}
+            {{ form.file }}
+            {{ form.submit }}
         </form>
     </html>
 {% endblock %}
