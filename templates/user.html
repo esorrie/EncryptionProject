@@ -12,14 +12,14 @@
     <p>Email: {{ user.email }}</p>
     {% if user %} 
         <h2>File Encryption and Upload</h2>
+        <a href="/profile/file-upload/{{ user._id }}">
+            <button> Upload an file </button>
+        </a>
         
-            <a href="/profile/image-upload/<user_id>">
-                <button> Upload an image </button>
-            </a>
+        <a href="/profile/image-upload/{{ user._id }}">
+            <button> Upload an image </button>
+        </a>
             
-            <a href="/profile/file-upload/<user_id>">
-                <button> Upload an file </button>
-            </a>
         
     {% else %}
         <p>Please log in to access your profile.</p>
