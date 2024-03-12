@@ -1,10 +1,13 @@
 from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify
 from pymongo import MongoClient
 from bson import ObjectId
-import logging
-from Crypto.PublicKey import RSA
+from flask_wtf import FlaskForm
+from wtforms import FileField, SubmitField
+from werkzeug.utils import secure_filename
 import os
 
+
+from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 from Crypto.Protocol.KDF import scrypt
@@ -19,11 +22,16 @@ from algorithms.aes256gcm.aesEncryption import aesEncryption
 
 app = Flask(__name__)
 app.secret_key = "2tc)(h@|HWT4=+8<:ZiUs;(fvd|8;u"
+app.config['UPLOAD_FOLDER'] = 'static/files'
+app.config['IMAGE_FOLDER'] = 'static/images'
 
 client = MongoClient(host='project_mongodb', port=27017)
 db = client["project_mongodb"]
 users_collection = db['users']
 
+class UploadFileForm(FlaskForm):
+    file = FileField("File")
+    submit = SubmitField("Upload File")
 
 @app.route('/') 
 def index():
@@ -133,8 +141,45 @@ def file_upload(user_id):
     if 'user_id' in session:
         user_id = ObjectId(session['user_id'])
         user = users_collection.find_one({'_id': user_id})
-        if user:
-            return render_template('file-upload.html', user = user)
+        form = UploadFileForm()
+        if form.validate_on_submit():
+            file = form.file.data # get file data
+            file.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                                    app.config['UPLOAD_FOLDER'],
+                                    secure_filename(file.filename))) # save file
+            
+            filename = secure_filename(file.filename)
+            return render_template('file-upload.html', user = user, form=form, filename=filename)    
+        return render_template('file-upload.html', user = user, form=form)
+            
+        # if request.method == 'POST':
+        #     input_file = request.files['file']
+        #     input_file_name = input_file.filename
+        #     input_file.save(os.path.join(app.config['UPLOAD_FOLDER'], input_file_name))
+            
+        #     if input_file.filename == '':
+        #         flash("File not selected")
+        #     else:
+        #         flash("File uploaded successfully!")
+        #         users_collection.update_one({"_id": user_id},
+        #                                     {"$set": {"file_to_encrypt": input_file}})
+        #     return render_template('file-upload.html', user=user, filename=filename) # Pass filename
+            # else:
+            #     # File is selected, proceed with encryption
+            #     salt = user['aes_salt']
+            #     nonce = user['aes_nonce']
+            #     # Generating the key using scrypt
+            #     # Your key that you can encrypt with, 
+            #     # N=work factor, higher N increases resistance to brute-force attacks
+            #     # r = block size parameter, influences the mount of memory required during key derivation
+            #     # p = parallelization parameter, useful for running on multiple cores
+            #     aesKey = scrypt(user['password_hash'],
+            #                     salt=user['aes_salt'],
+            #                     key_len=32,
+            #                     N=2**20,
+            #                     r=8,
+            #                     p=1) 
+            #     print('AES key generated')
 
 @app.route('/profile/image-upload/<user_id>', methods=['GET', 'POST'])
 def img_upload(user_id):
@@ -143,6 +188,29 @@ def img_upload(user_id):
         user = users_collection.find_one({'_id': user_id})
         if user:
             return render_template('img-upload.html', user = user)
+        
+        if request.method == 'POST':
+            input_file = request.files['file']
+            input_file.save(input_file.filename)
+
+            # if input_file.filename == '':
+            #     flash("File not selected")
+            # else:
+            #     # File is selected, proceed with encryption
+            #     salt = user['aes_salt']
+            #     nonce = user['aes_nonce']
+            #     # Generating the key using scrypt
+            #     # Your key that you can encrypt with, 
+            #     # N=work factor, higher N increases resistance to brute-force attacks
+            #     # r = block size parameter, influences the mount of memory required during key derivation
+            #     # p = parallelization parameter, useful for running on multiple cores
+            #     aesKey = scrypt(user['password_hash'],
+            #                     salt=user['aes_salt'],
+            #                     key_len=32,
+            #                     N=2**20,
+            #                     r=8,
+            #                     p=1) 
+            #     print('AES key generated')
     
 if __name__ == '__main__': 
     app.run(host='0.0.0.0', debug=True) 
