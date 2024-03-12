@@ -1,14 +1,21 @@
-from flask import Flask, render_template, request, redirect, session, url_for, flash
+from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify
 from pymongo import MongoClient
 from bson import ObjectId
-
+import logging
 from Crypto.PublicKey import RSA
+import os
 
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 from Crypto.Protocol.KDF import scrypt
-from base64 import b64encode # For encoding encrypted data
+import base64
+from base64 import b64encode, b64decode # For encoding encrypted data
 import bcrypt # For password hashing
+
+from algorithms.aes256gcm.aesEncryption import aesEncryption
+# from algorithms.aes256gcm.aesDecryption import aesDecryption
+# from algorithms.rsaProcess.rsaEncryption import rsaEncryption
+# from algorithms.rsaProcess.rsaDecryption import rsaDecryption
 
 app = Flask(__name__)
 app.secret_key = "2tc)(h@|HWT4=+8<:ZiUs;(fvd|8;u"
@@ -17,9 +24,10 @@ client = MongoClient(host='project_mongodb', port=27017)
 db = client["project_mongodb"]
 users_collection = db['users']
 
+
 @app.route('/') 
 def index():
-    return render_template('index.html') 
+    return render_template('index.html')
 
 @app.route('/register', methods=['GET', 'POST']) 
 def register():
@@ -37,17 +45,12 @@ def register():
             
             # Password Hashing (bcrypt)
             passwordSalt = bcrypt.gensalt()  # Generate salt for password hashing
-            passwordHash = bcrypt.hashpw(password.encode(), passwordSalt)
-            
+            passwordHash = bcrypt.hashpw(password.encode('utf-8'), passwordSalt)
             
             # Generating a random salt
             # A salt is random data that is used as an additional input to a one-way function that "hashes" data.
             salt = get_random_bytes(32) 
-            # Generating the key using scrypt
-            aesKey = scrypt(passwordHash, salt=salt, key_len=32, N=2**20, r=8, p=1)  # Your key that you can encrypt with, N=work factor, r = block size parameter, p = parallelization parameter, it must be no greater than
             aesNonce = get_random_bytes(12)
-            # Create a cipher object to encrypt data (will use this elsewhere for encrypting and decrypting)
-            cipher = AES.new(aesKey, AES.MODE_GCM, nonce=aesNonce)
             
             users_collection.insert_one({
                                         'username': username, 
@@ -56,7 +59,7 @@ def register():
                                         'private_Key': keyPrivate,
                                         'public_Key': keyPublic,
                                         'aes_salt': salt, # salt and nonce are stored over the aes key, so you can reconstruct the key when needed rather than storing the key
-                                        'aes_nonce': aesNonce
+                                        'aes_nonce': aesNonce,
                                         })
             return redirect(url_for('login')) # after register redirect to login page
     return render_template('register.html') 
@@ -67,25 +70,83 @@ def login():
         username = request.form['username']
         password = request.form['password']
         
-        user = users_collection.find_one({'username': username, 'password': password})
+        user = users_collection.find_one({'username': username})
         if user:
-            session['user_id'] = str(user['_id']) # store's user data
-            return redirect(url_for('profile')) # after login redirect to home page
+            stored_hash = user['password_hash']  # Retrieve the full hash 
+            # Check if the hashed password matches
+            if bcrypt.checkpw(password.encode('utf-8'), stored_hash):
+                session['user_id'] = str(user['_id']) # store's user data
+                return redirect(url_for('profile', user_id = user['_id'])) # after login redirect to home page
         else:
             flash('Invalid username or password. Please try again.', 'danger')
     return render_template('login.html') 
 
-@app.route('/profile')
-def profile():
+@app.route('/profile/<user_id>', methods=['GET', 'POST'])
+def profile(user_id):
     if 'user_id' in session:
         user_id = ObjectId(session['user_id'])
         user = users_collection.find_one({'_id': user_id})
         if user:
             return render_template('user.html', user = user)
-        else:
-            return 'User not found', 404
+        
+        # if request.method == 'POST':
+        #     input_file = request.files['file']
+        #     upload_folder = os.path.join(app.root_path, 'uploads')  # Choose a suitable 'uploads' folder location 
+        #     os.makedirs(upload_folder, exist_ok=True)  # Ensure the folder exists
+        #     file_path = os.path.join(upload_folder, input_file.filename)
+        #     input_file.save(file_path) 
+        #     return render_template('uploaded.html', name = input_file.filename)
+            # if input_file.filename == '':
+            #     flash("File not selected")
+            # else:
+            #     # File is selected, proceed with encryption
+            #     salt = user['aes_salt']
+            #     nonce = user['aes_nonce']
+            #     # Generating the key using scrypt
+            #     # Your key that you can encrypt with, 
+            #     # N=work factor, higher N increases resistance to brute-force attacks
+            #     # r = block size parameter, influences the mount of memory required during key derivation
+            #     # p = parallelization parameter, useful for running on multiple cores
+            #     aesKey = scrypt(user['password_hash'],
+            #                     salt=user['aes_salt'],
+            #                     key_len=32,
+            #                     N=2**20,
+            #                     r=8,
+            #                     p=1) 
+            #     print('AES key generated')
+            #     # Create a cipher object to encrypt data (will use this elsewhere for encrypting and decrypting)
+            #     cipher = AES.new(aesKey, AES.MODE_GCM, nonce=user['aes_nonce'])
+            #     # Perform Encryption
+            #     output = aesEncryption(input_file, cipher, salt, nonce)
+            #     flash("Encryption success")
+            #     users_collection.update_one({"_id": user_id},
+            #                                 {"$set": {"encrypted_file_path": output}})
+            #     flash("Storage success")
+            #     return render_template('uploaded.html', name = input_file.filename)
+
+                
     else:
         return 'Please log in to view profile', 401 
-        
+    
+@app.route('/profile/file-upload/<user_id>', methods=['GET', 'POST'])
+def file_upload(user_id):
+    if 'user_id' in session:
+        user_id = ObjectId(session['user_id'])
+        user = users_collection.find_one({'_id': user_id})
+        if user:
+            return render_template('file-upload.html', user = user)
+
+@app.route('/profile/image-upload/<user_id>', methods=['GET', 'POST'])
+def img_upload(user_id):
+    if 'user_id' in session:
+        user_id = ObjectId(session['user_id'])
+        user = users_collection.find_one({'_id': user_id})
+        if user:
+            return render_template('img-upload.html', user = user)
+    
 if __name__ == '__main__': 
     app.run(host='0.0.0.0', debug=True) 
+
+## TODO : After input file selected, move into aesEncrypt function 
+    ## display console logs (maybe already doing) 
+    # easEncryption function returns 'b64_file_out', add this file to database (have dynamic file names)
