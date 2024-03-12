@@ -8,11 +8,10 @@
 
 {% block content %}
     <html> 
-        <head> 
-            <title>success</title> 
-        </head> 
+        <h1>{{ user.username }}'s Profile</h1>
+        <p>Username: {{ user.username }}</p>
+        <p>Email: {{ user.email }}</p>
         <body> 
-            <p>File uploaded successfully</p> 
             <p>File Name: {{name}}</p> 
         </body> 
         <form action="/profile" method="POST" enctype="multipart/form-data" >
