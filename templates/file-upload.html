@@ -14,7 +14,16 @@
         <body> 
             <p>File Name: {{name}}</p> 
         </body> 
-        <form action="/profile" method="POST" enctype="multipart/form-data" >
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul class="messages">
+                {% for message in messages %}
+                <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        {% endwith %}
+        <form action="/profile/file-upload/{{ user._id }}" method="POST" enctype="multipart/form-data" >
             <input type="file" name="file" />
             <button type="submit"> Encrypt and Upload </button>
         </form>

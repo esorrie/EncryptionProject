@@ -14,7 +14,7 @@
         <body> 
             <p>File Name: {{name}}</p> 
         </body> 
-        <form action="/profile" method="POST" enctype="multipart/form-data" >
+        <form action="/profile/image-upload/{{ user._id }}" method="POST" enctype="multipart/form-data" >
             <input type="file" name="file" />
             <button type="submit"> Encrypt and Upload </button>
         </form>
