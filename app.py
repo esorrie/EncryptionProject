@@ -32,6 +32,8 @@ db = client["project_mongodb"]
 users_collection = db['users']
 files_collection = db['files']
 images_collection = db['images']
+enc_files_collection = db['enc_files']
+enc_images_collection = db['enc_images']
 
 class UploadFileForm(FlaskForm):
     file = FileField("File")
@@ -155,7 +157,7 @@ def file_upload(user_id):
                     "user_id": user_id,
                     "filename": filename
                 })
-                return render_template('file-upload.html', user = user, form=form, filename=filename)    
+                return render_template('file-upload.html', user = user, form=form, filename=filename)
             else:
                 flash('Invalid File Type')
                 flash('Accepted File Types are txt, doc, docx, pdf')
