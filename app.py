@@ -196,18 +196,18 @@ def file_encrypt(user_id):
             # Create a cipher object to encrypt data (will use this elsewhere for encrypting and decrypting)
             cipher = AES.new(aesKey, AES.MODE_GCM, nonce=user['aes_nonce'])
             
-        
-            # Perform Encryption
-            output = aesEncryption(input_file, cipher, salt, nonce)
-            flash("Encryption success")
-            
             # Construct output filename (assuming the original file directory organization needs to be preserved)
             original_filepath = file_to_encrypt["filename"]
             original_directory, original_filename = os.path.split(original_filepath)  # Split into directory and filename
             _, original_extension = os.path.splitext(original_filename)
-
             output_filename = original_filename[:-len(original_extension)] + '_encrypted' + original_extension
+        
+            # Perform Encryption
+            output = aesEncryption(input_file, cipher, salt, nonce, output_filename)
+            flash("Encryption success")
+            
 
+            # save encrypted file 
             encrypted_output_directory = os.path.join(app.config['ENC_UPLOAD_FOLDER'], original_directory)
             os.makedirs(encrypted_output_directory, exist_ok=True)  # Create the directory if it doesn't exist
             encrypted_output_path = os.path.join(encrypted_output_directory, output_filename)
