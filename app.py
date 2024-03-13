@@ -24,6 +24,8 @@ app = Flask(__name__)
 app.secret_key = "2tc)(h@|HWT4=+8<:ZiUs;(fvd|8;u"
 app.config['UPLOAD_FOLDER'] = 'static/files'
 app.config['IMAGE_FOLDER'] = 'static/images'
+FILE_EXTENSIONS ={'txt', 'doc', 'docx', 'pdf'}
+IMAGE_EXTENSIONS ={'jpeg', 'png', 'jpg', 'raw'}
 
 client = MongoClient(host='project_mongodb', port=27017)
 db = client["project_mongodb"]
@@ -34,6 +36,14 @@ images_collection = db['images']
 class UploadFileForm(FlaskForm):
     file = FileField("File")
     submit = SubmitField("Upload File")
+    
+def allowedFile(filename):
+    return '.' in filename and \
+        filename.rsplit('.', 1)[1].lower() in FILE_EXTENSIONS   
+
+def allowedImage(filename):
+    return '.' in filename and \
+        filename.rsplit('.', 1)[1].lower() in IMAGE_EXTENSIONS   
 
 @app.route('/') 
 def index():
@@ -99,16 +109,6 @@ def profile(user_id):
         if user:
             return render_template('user.html', user = user)
         
-        # if request.method == 'POST':
-        #     input_file = request.files['file']
-        #     upload_folder = os.path.join(app.root_path, 'uploads')  # Choose a suitable 'uploads' folder location 
-        #     os.makedirs(upload_folder, exist_ok=True)  # Ensure the folder exists
-        #     file_path = os.path.join(upload_folder, input_file.filename)
-        #     input_file.save(file_path) 
-        #     return render_template('uploaded.html', name = input_file.filename)
-            # if input_file.filename == '':
-            #     flash("File not selected")
-            # else:
             #     # File is selected, proceed with encryption
             #     salt = user['aes_salt']
             #     nonce = user['aes_nonce']
@@ -138,7 +138,7 @@ def profile(user_id):
     else:
         return 'Please log in to view profile', 401 
     
-@app.route('/profile/file-upload/<user_id>', methods=['GET', 'POST'])
+@app.route('/profile/<user_id>/file-upload', methods=['GET', 'POST'])
 def file_upload(user_id):
     if 'user_id' in session:
         user_id = ObjectId(session['user_id'])
@@ -146,16 +146,21 @@ def file_upload(user_id):
         form = UploadFileForm()
         if form.validate_on_submit():
             file = form.file.data # get file data
-            file.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                                    app.config['UPLOAD_FOLDER'],
-                                    secure_filename(file.filename))) # save file
             filename = secure_filename(file.filename)
-            files_collection.insert_one({
-                "user_id": user_id,
-                "filename": filename
-            })
-            
-            return render_template('file-upload.html', user = user, form=form, filename=filename)    
+            if allowedFile(filename):
+                file.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                                        app.config['UPLOAD_FOLDER'],
+                                        secure_filename(file.filename))) # save file
+                files_collection.insert_one({
+                    "user_id": user_id,
+                    "filename": filename
+                })
+                return render_template('file-upload.html', user = user, form=form, filename=filename)    
+            else:
+                flash('Invalid File Type')
+                flash('Accepted File Types are txt, doc, docx, pdf')
+                return render_template('file-upload.html', user = user, form=form)
+                
         return render_template('file-upload.html', user = user, form=form)
             
             #     # File is selected, proceed with encryption
@@ -174,7 +179,7 @@ def file_upload(user_id):
             #                     p=1) 
             #     print('AES key generated')
 
-@app.route('/profile/image-upload/<user_id>', methods=['GET', 'POST'])
+@app.route('/profile/<user_id>/image-upload', methods=['GET', 'POST'])
 def img_upload(user_id):
     if 'user_id' in session:
         user_id = ObjectId(session['user_id'])
@@ -182,16 +187,21 @@ def img_upload(user_id):
         form = UploadFileForm()
         if form.validate_on_submit():
             file = form.file.data # get file data
-            file.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                                        app.config['IMAGE_FOLDER'], 
-                                        secure_filename(file.filename)))
             filename = secure_filename(file.filename)
-            images_collection.insert_one({
-                "user_id": user_id,
-                "filename": filename
-            }) 
-            
-            return render_template('img-upload.html', user = user, form=form, filename=filename)    
+            if allowedImage(filename):
+                file.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                                        app.config['IMAGE_FOLDER'],
+                                        secure_filename(file.filename))) # save file
+                images_collection.insert_one({
+                    "user_id": user_id,
+                    "filename": filename
+                })
+                return render_template('img-upload.html', user = user, form=form, filename=filename)    
+            else:
+                flash('Invalid File Type')
+                flash('Accepted File Types are txt, doc, docx, pdf')
+                return render_template('img-upload.html', user = user, form=form)
+        
         return render_template('img-upload.html', user = user, form=form)
             # if input_file.filename == '':
             #     flash("File not selected")
