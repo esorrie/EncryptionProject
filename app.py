@@ -23,7 +23,9 @@ from algorithms.aes256gcm.aesEncryption import aesEncryption
 app = Flask(__name__)
 app.secret_key = "2tc)(h@|HWT4=+8<:ZiUs;(fvd|8;u"
 app.config['UPLOAD_FOLDER'] = 'static/files'
+app.config['ENC_UPLOAD_FOLDER'] = 'static/enc_files'
 app.config['IMAGE_FOLDER'] = 'static/images'
+app.config['ENC_IMAGE_FOLDER'] = 'static/enc_images'
 FILE_EXTENSIONS ={'txt', 'doc', 'docx', 'pdf'}
 IMAGE_EXTENSIONS ={'jpeg', 'png', 'jpg', 'raw'}
 
@@ -38,7 +40,7 @@ enc_images_collection = db['enc_images']
 class UploadFileForm(FlaskForm):
     file = FileField("File")
     submit = SubmitField("Upload File")
-    
+
 def allowedFile(filename):
     return '.' in filename and \
         filename.rsplit('.', 1)[1].lower() in FILE_EXTENSIONS   
@@ -47,10 +49,6 @@ def allowedImage(filename):
     return '.' in filename and \
         filename.rsplit('.', 1)[1].lower() in IMAGE_EXTENSIONS   
 
-class EncryptFileForm(FlaskForm):
-    file = FileField("File")
-    encrypt = SubmitField("Encrypt File")
-    
 @app.route('/') 
 def index():
     return render_template('index.html')
@@ -114,41 +112,19 @@ def profile(user_id):
         user = users_collection.find_one({'_id': user_id})
         if user:
             return render_template('user.html', user = user)
-        
-            #     # File is selected, proceed with encryption
-            #     salt = user['aes_salt']
-            #     nonce = user['aes_nonce']
-            #     # Generating the key using scrypt
-            #     # Your key that you can encrypt with, 
-            #     # N=work factor, higher N increases resistance to brute-force attacks
-            #     # r = block size parameter, influences the mount of memory required during key derivation
-            #     # p = parallelization parameter, useful for running on multiple cores
-            #     aesKey = scrypt(user['password_hash'],
-            #                     salt=user['aes_salt'],
-            #                     key_len=32,
-            #                     N=2**20,
-            #                     r=8,
-            #                     p=1) 
-            #     print('AES key generated')
-            #     # Create a cipher object to encrypt data (will use this elsewhere for encrypting and decrypting)
-            #     cipher = AES.new(aesKey, AES.MODE_GCM, nonce=user['aes_nonce'])
-            #     # Perform Encryption
-            #     output = aesEncryption(input_file, cipher, salt, nonce)
-            #     flash("Encryption success")
-            #     users_collection.update_one({"_id": user_id},
-            #                                 {"$set": {"encrypted_file_path": output}})
-            #     flash("Storage success")
-            #     return render_template('uploaded.html', name = input_file.filename)
-
-                
-    else:
-        return 'Please log in to view profile', 401 
+    
+    return 'Please log in to view profile', 401 
     
 @app.route('/profile/<user_id>/file-upload', methods=['GET', 'POST'])
 def file_upload(user_id):
     if 'user_id' in session:
         user_id = ObjectId(session['user_id'])
         user = users_collection.find_one({'_id': user_id})
+        
+        
+        user_files = files_collection.find({"user_id": user_id})        
+        file_list = [(file['_id'], file['filename']) for file in files_collection.find({"user_id": user_id})]
+    
         form = UploadFileForm()
         if form.validate_on_submit():
             file = form.file.data # get file data
@@ -159,33 +135,103 @@ def file_upload(user_id):
                                         secure_filename(file.filename))) # save file
                 files_collection.insert_one({
                     "user_id": user_id,
-                    "filename": filename
+                    "filename": filename,
                 })
-                
-                return render_template('file-upload.html', user = user, form=form, filename=filename)
+                return render_template('file-upload.html',
+                                        user = user,
+                                        form=form,
+                                        filename=filename,
+                                        user_files=user_files,
+                                        file_list=file_list
+                                        )
             else:
                 flash('Invalid File Type')
                 flash('Accepted File Types are txt, doc, docx, pdf')
-                return render_template('file-upload.html', user = user, form=form)
-                
-        user_files = files_collection.find({"user_id": user_id})
-        return render_template('file-upload.html', user = user, form=form, user_files=user_files)
+                return render_template('file-upload.html', 
+                                        user = user,
+                                        form=form,
+                                        user_files=user_files,
+                                        file_list=file_list
+                                        )
+
+        return render_template('file-upload.html',
+                                user = user,
+                                form=form,
+                                user_files=user_files,
+                                file_list=file_list
+                                )
+
+@app.route('/profile/<user_id>/file-encrypt', methods=['GET', 'POST'])
+def file_encrypt(user_id):
+    if 'user_id' in session:
+        user_id = ObjectId(session['user_id'])
+        user = users_collection.find_one({'_id': user_id})
+        
+        user_files = files_collection.find({"user_id": user_id})        
+        file_list = [(file['_id'], file['filename']) for file in files_collection.find({"user_id": user_id})]
+        
+        if request.method == 'POST':
+            selected_file_id = request.form['selected_file']
+            file_to_encrypt = files_collection.find_one({'_id': ObjectId(selected_file_id)})
+
+            # Check if file exists (optional)
+            if not file_to_encrypt:
+                flash("Selected file not found")
+                return redirect(url_for('file_encrypt', user_id=user_id))
+
+            # Retrieve absolute file path (assuming files are in 'static/files')
+            input_file = os.path.join(app.config["UPLOAD_FOLDER"], file_to_encrypt["filename"])
+            # File is selected, proceed with encryption
+            salt = user['aes_salt']
+            nonce = user['aes_nonce']
+            # Generating the key using scrypt
+            # Your key that you can encrypt with, 
+            aesKey = scrypt(user['password_hash'],
+                            salt=user['aes_salt'],
+                            key_len=32,
+                            N=2**20, # N=work factor, higher N increases resistance to brute-force attacks
+                            r=8, # r = block size parameter, influences the mount of memory required during key derivation
+                            p=1) # p = parallelization parameter, useful for running on multiple cores
+            print('AES key generated')
+            # Create a cipher object to encrypt data (will use this elsewhere for encrypting and decrypting)
+            cipher = AES.new(aesKey, AES.MODE_GCM, nonce=user['aes_nonce'])
+            # Perform Encryption
+            output = aesEncryption(input_file, cipher, salt, nonce)
+            flash("Encryption success")
+        
+            # Get the original file extension
+            _, original_extension = os.path.splitext(file_to_encrypt["filename"])
             
-            #     # File is selected, proceed with encryption
-            #     salt = user['aes_salt']
-            #     nonce = user['aes_nonce']
-            #     # Generating the key using scrypt
-            #     # Your key that you can encrypt with, 
-            #     # N=work factor, higher N increases resistance to brute-force attacks
-            #     # r = block size parameter, influences the mount of memory required during key derivation
-            #     # p = parallelization parameter, useful for running on multiple cores
-            #     aesKey = scrypt(user['password_hash'],
-            #                     salt=user['aes_salt'],
-            #                     key_len=32,
-            #                     N=2**20,
-            #                     r=8,
-            #                     p=1) 
-            #     print('AES key generated')
+            # Save encrypted file
+            output_filename = secure_filename(file_to_encrypt["filename"][:-len(original_extension)]) + '_encrypted' + original_extension
+            output_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                                        app.config['ENC_UPLOAD_FOLDER'],
+                                        output_filename)
+        
+            with open(output_path, 'wb') as f:
+                f.write(output)
+
+            enc_files_collection.insert_one({
+                "user_id": user_id,
+                "original_filename": file_to_encrypt["filename"],  # Store original name
+                "encrypted_filename": output_filename,
+                "encryption_key": aesKey
+            })
+                
+            enc_files_collection.insert_one({"_id": user_id},
+                                        {"$set": {"encrypted_file_path": output}})
+            flash("Storage success")
+            
+            return render_template('file-encrypt.html',
+                                user = user,
+                                user_files=user_files,
+                                file_list=file_list)
+    
+        return render_template('file-encrypt.html',
+                                user = user,
+                                user_files=user_files,
+                                file_list=file_list
+                                )
 
 @app.route('/profile/<user_id>/image-upload', methods=['GET', 'POST'])
 def img_upload(user_id):
@@ -193,24 +239,40 @@ def img_upload(user_id):
         user_id = ObjectId(session['user_id'])
         user = users_collection.find_one({'_id': user_id})
         form = UploadFileForm()
+        user_images = images_collection.find({"user_id": user_id})
+        
         if form.validate_on_submit():
-            file = form.file.data # get file data
-            filename = secure_filename(file.filename)
+            image = form.file.data # get file data
+            filename = secure_filename(image.filename)
             if allowedImage(filename):
-                file.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                image.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),
                                         app.config['IMAGE_FOLDER'],
-                                        secure_filename(file.filename))) # save file
+                                        secure_filename(image.filename))) # save file
                 images_collection.insert_one({
                     "user_id": user_id,
                     "filename": filename
                 })
-                return render_template('img-upload.html', user = user, form=form, filename=filename)    
+                return render_template('img-upload.html',
+                                        user = user,
+                                        form=form,
+                                        filename=filename,
+                                        user_images=user_images
+                                        )    
             else:
                 flash('Invalid File Type')
-                flash('Accepted File Types are txt, doc, docx, pdf')
-                return render_template('img-upload.html', user = user, form=form)
+                flash('Accepted File Types are jpeg, png, jpg, raw')
+                return render_template('img-upload.html',
+                                        user = user,
+                                        form=form,
+                                        user_images=user_images
+                                        )
         
-        return render_template('img-upload.html', user = user, form=form)
+        return render_template('img-upload.html',
+                                user = user,
+                                form=form,
+                                user_images=user_images
+                                )
+            
             # if input_file.filename == '':
             #     flash("File not selected")
             # else:
