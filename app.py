@@ -47,6 +47,10 @@ def allowedImage(filename):
     return '.' in filename and \
         filename.rsplit('.', 1)[1].lower() in IMAGE_EXTENSIONS   
 
+class EncryptFileForm(FlaskForm):
+    file = FileField("File")
+    encrypt = SubmitField("Encrypt File")
+    
 @app.route('/') 
 def index():
     return render_template('index.html')
@@ -157,13 +161,15 @@ def file_upload(user_id):
                     "user_id": user_id,
                     "filename": filename
                 })
+                
                 return render_template('file-upload.html', user = user, form=form, filename=filename)
             else:
                 flash('Invalid File Type')
                 flash('Accepted File Types are txt, doc, docx, pdf')
                 return render_template('file-upload.html', user = user, form=form)
                 
-        return render_template('file-upload.html', user = user, form=form)
+        user_files = files_collection.find({"user_id": user_id})
+        return render_template('file-upload.html', user = user, form=form, user_files=user_files)
             
             #     # File is selected, proceed with encryption
             #     salt = user['aes_salt']
@@ -227,4 +233,4 @@ def img_upload(user_id):
 if __name__ == '__main__': 
     app.run(host='0.0.0.0', debug=True) 
 
-## TODO : Prevent image files being stored in the files directory and stop files from being stored in the image directory
+## TODO : 
