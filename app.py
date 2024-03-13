@@ -195,20 +195,24 @@ def file_encrypt(user_id):
             print('AES key generated')
             # Create a cipher object to encrypt data (will use this elsewhere for encrypting and decrypting)
             cipher = AES.new(aesKey, AES.MODE_GCM, nonce=user['aes_nonce'])
+            
+        
             # Perform Encryption
             output = aesEncryption(input_file, cipher, salt, nonce)
             flash("Encryption success")
-        
-            # Get the original file extension
-            _, original_extension = os.path.splitext(file_to_encrypt["filename"])
             
-            # Save encrypted file
-            output_filename = secure_filename(file_to_encrypt["filename"][:-len(original_extension)]) + '_encrypted' + original_extension
-            output_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                                        app.config['ENC_UPLOAD_FOLDER'],
-                                        output_filename)
+            # Construct output filename (assuming the original file directory organization needs to be preserved)
+            original_filepath = file_to_encrypt["filename"]
+            original_directory, original_filename = os.path.split(original_filepath)  # Split into directory and filename
+            _, original_extension = os.path.splitext(original_filename)
+
+            output_filename = original_filename[:-len(original_extension)] + '_encrypted' + original_extension
+
+            encrypted_output_directory = os.path.join(app.config['ENC_UPLOAD_FOLDER'], original_directory)
+            os.makedirs(encrypted_output_directory, exist_ok=True)  # Create the directory if it doesn't exist
+            encrypted_output_path = os.path.join(encrypted_output_directory, output_filename)
         
-            with open(output_path, 'wb') as f:
+            with open(encrypted_output_path, 'wb') as f:
                 f.write(output)
 
             enc_files_collection.insert_one({
@@ -217,9 +221,6 @@ def file_encrypt(user_id):
                 "encrypted_filename": output_filename,
                 "encryption_key": aesKey
             })
-                
-            enc_files_collection.insert_one({"_id": user_id},
-                                        {"$set": {"encrypted_file_path": output}})
             flash("Storage success")
             
             return render_template('file-encrypt.html',

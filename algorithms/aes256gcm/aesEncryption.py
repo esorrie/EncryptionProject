@@ -1,16 +1,15 @@
 # encryption of file with AES 256 GCM
-from Crypto.Random import get_random_bytes
-from Crypto.Protocol.KDF import scrypt
-from Crypto.Cipher import AES
 from base64 import b64encode
-import sys
+import os
 
 def aesEncryption(input_file, cipher, salt, nonce):
     BUFFER_SIZE = 1024 * 1024 # The size in bytes that we read, encrypt and write to at once
     
     # Check if the user selected a file
     if input_file:
-        output_filename = input_file # file is only created if a file is selected (prevents an empty _encrypted file being created)
+        _, original_extension = os.path.splitext(input_file)
+        output_filename = os.path.basename(input_file)[:-len(original_extension)] + '_encrypted' + original_extension
+
         file_out = open(output_filename, 'wb')  # wb = write bytes. Required to write the encrypted data
 
         print("Starting encryption process")  # Debug comment
