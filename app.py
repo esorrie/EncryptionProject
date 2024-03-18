@@ -17,7 +17,7 @@ import bcrypt # For password hashing
 
 from algorithms.aes256gcm.aesEncryption import aesEncryption
 # from algorithms.aes256gcm.aesDecryption import aesDecryption
-# from algorithms.rsaProcess.rsaEncryption import rsaEncryption
+from algorithms.rsaProcess.rsaEncryption import rsaEncryption
 # from algorithms.rsaProcess.rsaDecryption import rsaDecryption
 
 app = Flask(__name__)
@@ -266,17 +266,27 @@ def file_send(user_id):
         enc_user_files = enc_files_collection.find({"user_id": user_id})        
         enc_file_list = [(file['_id'], file['encrypted_filename']) for file in enc_files_collection.find({"user_id": user_id})]
         
+        users_list = [(user['_id'], user['username']) for user in users_collection.find()]
+        
         if request.method == 'POST':
             selected_enc_file_id = request.form['selected_enc_file']
             file_to_send = enc_files_collection.find_one({'_id': ObjectId(selected_enc_file_id)})
-
+            
+            recipient_id = request.form['selected_user']
+            recipient = users_collection.find_one({'_id': ObjectId(recipient_id)})
+            
+            keyPublic = recipient['public_Key']
+            
             # Check if file exists (optional)
-            if not file_to_send:
+            if not file_to_send and recipient:
                 flash("Selected file not found")
                 return redirect(url_for('file_encrypt', user_id=user_id))
 
-            # Retrieve absolute file path (assuming files are in 'static/files')
+            # Retrieve absolute file path (assuming files are in 'static/enc_files')
             send_file = os.path.join(app.config["ENC_UPLOAD_FOLDER"], file_to_send["encrypted_filename"])
+            
+            send_output = rsaEncryption(send_file, keyPublic)
+            
             # 
             #
             # AES KEY ENCRYPTION STARTED
@@ -289,12 +299,27 @@ def file_send(user_id):
             #
             # AES KEY ENCRYPTION FINISHED
             # 
+            #
+            
+            # 
+            #
+            # FILE SENDING STARTED
+            # 
+            # 
+            
+            
+            
+            # 
+            #
+            # FILE SENDING FINISHED
+            # 
             # 
             
     return render_template('file-send.html',
                                 user = user,
                                 enc_user_files=enc_user_files,
                                 enc_file_list=enc_file_list,
+                                users_list=users_list,
                                 )
 
 @app.route('/profile/<user_id>/image-upload', methods=['GET', 'POST'])

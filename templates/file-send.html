@@ -53,6 +53,11 @@
                     <option value="{{ file_id }}">{{ encrypted_filename }}</option>
                 {% endfor %}
             </select>
+            <select name="selected_user" id="selected_user">
+                {% for user_id, username in users_list %}
+                    <option value="{{ user_id }}">{{ username }}</option>
+                {% endfor %}
+            </select>
             <button type="submit">Send</button>
         </form>
         
