@@ -121,7 +121,6 @@ def file_upload(user_id):
         user_id = ObjectId(session['user_id'])
         user = users_collection.find_one({'_id': user_id})
         
-        
         user_files = files_collection.find({"user_id": user_id})        
         file_list = [(file['_id'], file['filename']) for file in files_collection.find({"user_id": user_id})]
     
@@ -235,21 +234,6 @@ def file_encrypt(user_id):
             # FILE ENCRYPTION FINISHED
             # 
             # 
-
-
-            # 
-            #
-            # AES KEY ENCRYPTION STARTED
-            # 
-            # 
-            
-            # enc_aesKey =
-            
-            # 
-            #
-            # AES KEY ENCRYPTION FINISHED
-            # 
-            # 
             
             enc_files_collection.insert_one({
                 "user_id": user_id,
@@ -271,6 +255,46 @@ def file_encrypt(user_id):
                                 user = user,
                                 user_files=user_files,
                                 file_list=file_list,
+                                )
+
+@app.route('/profile/<user_id>/file-send', methods=['GET', 'POST'])
+def file_send(user_id):
+    if 'user_id' in session:
+        user_id = ObjectId(session['user_id'])
+        user = users_collection.find_one({'_id': user_id})
+
+        enc_user_files = enc_files_collection.find({"user_id": user_id})        
+        enc_file_list = [(file['_id'], file['encrypted_filename']) for file in enc_files_collection.find({"user_id": user_id})]
+        
+        if request.method == 'POST':
+            selected_enc_file_id = request.form['selected_enc_file']
+            file_to_send = enc_files_collection.find_one({'_id': ObjectId(selected_enc_file_id)})
+
+            # Check if file exists (optional)
+            if not file_to_send:
+                flash("Selected file not found")
+                return redirect(url_for('file_encrypt', user_id=user_id))
+
+            # Retrieve absolute file path (assuming files are in 'static/files')
+            send_file = os.path.join(app.config["ENC_UPLOAD_FOLDER"], file_to_send["encrypted_filename"])
+            # 
+            #
+            # AES KEY ENCRYPTION STARTED
+            # 
+            # 
+            
+            # enc_aesKey =
+            
+            # 
+            #
+            # AES KEY ENCRYPTION FINISHED
+            # 
+            # 
+            
+    return render_template('file-send.html',
+                                user = user,
+                                enc_user_files=enc_user_files,
+                                enc_file_list=enc_file_list,
                                 )
 
 @app.route('/profile/<user_id>/image-upload', methods=['GET', 'POST'])
