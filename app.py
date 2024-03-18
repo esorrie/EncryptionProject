@@ -125,6 +125,9 @@ def file_upload(user_id):
         user_files = files_collection.find({"user_id": user_id})        
         file_list = [(file['_id'], file['filename']) for file in files_collection.find({"user_id": user_id})]
     
+        enc_user_files = enc_files_collection.find({"user_id": user_id})        
+        enc_file_list = [(file['_id'], file['encrypted_filename']) for file in enc_files_collection.find({"user_id": user_id})]
+        
         form = UploadFileForm()
         if form.validate_on_submit():
             file = form.file.data # get file data
@@ -142,7 +145,9 @@ def file_upload(user_id):
                                         form=form,
                                         filename=filename,
                                         user_files=user_files,
-                                        file_list=file_list
+                                        file_list=file_list,
+                                        enc_user_files=enc_user_files,
+                                        enc_file_list=enc_file_list,
                                         )
             else:
                 flash('Invalid File Type')
@@ -151,14 +156,18 @@ def file_upload(user_id):
                                         user = user,
                                         form=form,
                                         user_files=user_files,
-                                        file_list=file_list
+                                        file_list=file_list,
+                                        enc_user_files=enc_user_files,
+                                        enc_file_list=enc_file_list,
                                         )
 
         return render_template('file-upload.html',
                                 user = user,
                                 form=form,
                                 user_files=user_files,
-                                file_list=file_list
+                                file_list=file_list,
+                                enc_user_files=enc_user_files,
+                                enc_file_list=enc_file_list,
                                 )
 
 @app.route('/profile/<user_id>/file-encrypt', methods=['GET', 'POST'])
@@ -233,6 +242,15 @@ def file_encrypt(user_id):
             # AES KEY ENCRYPTION STARTED
             # 
             # 
+            
+            # enc_aesKey =
+            
+            # 
+            #
+            # AES KEY ENCRYPTION FINISHED
+            # 
+            # 
+            
             enc_files_collection.insert_one({
                 "user_id": user_id,
                 "original_filename": file_to_encrypt["filename"],  # Store original name
@@ -246,12 +264,13 @@ def file_encrypt(user_id):
             return render_template('file-encrypt.html',
                                 user = user,
                                 user_files=user_files,
-                                file_list=file_list)
+                                file_list=file_list,
+                                )
     
         return render_template('file-encrypt.html',
                                 user = user,
                                 user_files=user_files,
-                                file_list=file_list
+                                file_list=file_list,
                                 )
 
 @app.route('/profile/<user_id>/image-upload', methods=['GET', 'POST'])
