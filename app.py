@@ -179,6 +179,12 @@ def file_encrypt(user_id):
                 flash("Selected file not found")
                 return redirect(url_for('file_encrypt', user_id=user_id))
 
+            # 
+            #
+            # FILE ENCRYPTION STARTED
+            # 
+            # 
+            
             # Retrieve absolute file path (assuming files are in 'static/files')
             input_file = os.path.join(app.config["UPLOAD_FOLDER"], file_to_encrypt["filename"])
             # File is selected, proceed with encryption
@@ -215,11 +221,25 @@ def file_encrypt(user_id):
             with open(encrypted_output_path, 'wb') as f:
                 f.write(output)
 
+            # 
+            #
+            # FILE ENCRYPTION FINISHED
+            # 
+            # 
+
+
+            # 
+            #
+            # AES KEY ENCRYPTION STARTED
+            # 
+            # 
             enc_files_collection.insert_one({
                 "user_id": user_id,
                 "original_filename": file_to_encrypt["filename"],  # Store original name
                 "encrypted_filename": output_filename,
-                "encryption_key": aesKey
+                "encryption_key": aesKey,
+                "salt": salt,
+                "nonce": nonce,
             })
             flash("Storage success")
             
@@ -296,4 +316,4 @@ def img_upload(user_id):
 if __name__ == '__main__': 
     app.run(host='0.0.0.0', debug=True) 
 
-## TODO : 
+## TODO : Use user RSA private key, to encrypt encryption cipher (not AES key)
