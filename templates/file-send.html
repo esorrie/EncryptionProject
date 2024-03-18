@@ -47,7 +47,7 @@
         <br/>
         Select an existing file to Encrypt!
         <br />
-        <form action="/profile/{{ user._id }}/file-encrypt" method="POST">
+        <form action="/profile/{{ user._id }}/file-send" method="POST">
             <select name="selected_enc_file" id="selected_enc_file">
                 {% for file_id, encrypted_filename in enc_file_list %}
                     <option value="{{ file_id }}">{{ encrypted_filename }}</option>
