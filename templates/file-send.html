@@ -49,8 +49,8 @@
         <br />
         <form action="/profile/{{ user._id }}/file-encrypt" method="POST">
             <select name="selected_enc_file" id="selected_enc_file">
-                {% for file_id, filename in file_list %}
-                    <option value="{{ file_id }}">{{ filename }}</option>
+                {% for file_id, encrypted_filename in enc_file_list %}
+                    <option value="{{ file_id }}">{{ encrypted_filename }}</option>
                 {% endfor %}
             </select>
             <button type="submit">Send</button>
