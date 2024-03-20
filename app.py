@@ -59,7 +59,10 @@ def allowedImage(filename):
 
 @app.route('/') 
 def index():
-    return render_template('index.html')
+    if 'user_id' in session:
+        user_id = ObjectId(session['user_id'])
+        user = users_collection.find_one({'_id': user_id})
+        return render_template('index.html', user=user)
 
 @app.route('/register', methods=['GET', 'POST']) 
 def register():
@@ -118,8 +121,16 @@ def profile(user_id):
     if 'user_id' in session:
         user_id = ObjectId(session['user_id'])
         user = users_collection.find_one({'_id': user_id})
-        if user:
-            return render_template('user.html', user = user)
+        recipient_id = user_id
+        # flash(user_id)
+        # flash(recipient_id)
+        
+        received_user_files = received_files_collection.find({"recipient_id": recipient_id})        
+        received_file_list = [(file['_id'], file['encrypted_filename']) for file in received_files_collection.find({"user_id": user_id})]
+        
+        return render_template('user.html', user = user,
+                                received_user_files=received_user_files,
+                                received_file_list=received_file_list)
     
     return 'Please log in to view profile', 401 
     
@@ -318,7 +329,7 @@ def file_send(user_id):
                 "sent_encrypted_filename_key": sent_output_filename_key,
                 "encryption_key": aesKey,
                 "rsa_keyPublic": keyPublic,
-                "encrypted_aesKey": send_output,
+                "encrypted_aesKey": send_output,  # to confirm key in file was correct
             })
             flash("Storage success")
             # Retrieve absolute file path
@@ -334,7 +345,7 @@ def file_send(user_id):
                 "sent_encrypted_filename_key": sent_output_filename_key,
                 "encryption_key": aesKey,
                 "rsa_keyPublic": keyPublic,
-                "encrypted_aesKey": send_output,
+                "encrypted_aesKey": send_output, # to confirm key in file was correct
             })
             
             return render_template('file-send.html',
@@ -351,6 +362,33 @@ def file_send(user_id):
                                 users_list=users_list,
                                 )
 
+@app.route('/profile/<user_id>/file-decrypt', methods=['GET', 'POST'])
+def file_decrypt(user_id):
+    if 'user_id' in session:
+        user_id = ObjectId(session['user_id'])
+        user = users_collection.find_one({'_id': user_id})
+        
+        recipient_id = user_id
+        # flash(user_id)
+        # flash(recipient_id)
+        
+        received_user_files = received_files_collection.find({"recipient_id": recipient_id})        
+        received_file_list = [(file['_id'], file['encrypted_filename']) for file in received_files_collection.find({"recipient_id": recipient_id})]
+        
+        if request.method == 'POST':
+        
+            selected_received_file_id = request.form['selected_received_enc_file']
+            file_to_decrypt = enc_files_collection.find_one({'_id': ObjectId(selected_received_file_id)})
+        
+            return render_template('file-decrypt.html',
+                                user = user,
+                                received_user_files = received_user_files,
+                                received_file_list = received_file_list)
+        return render_template('file-decrypt.html',
+                                user = user,
+                                received_user_files = received_user_files,
+                                received_file_list = received_file_list)
+    
 @app.route('/profile/<user_id>/image-upload', methods=['GET', 'POST'])
 def img_upload(user_id):
     if 'user_id' in session:

@@ -19,8 +19,36 @@
         <a href="/profile/{{ user._id }}/image-upload">
             <button> Upload an image </button>
         </a>
-            
-        
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                <ul> {{ message }} </ul>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        {% endwith %}
+        {% if received_user_files %}  
+        <table>
+            <thead>
+                <tr>    
+                    <th>
+                        Recieved Files and Keys
+                    </h>
+                </tr>
+            </thead>
+            <tbody>
+                {% for file in received_user_files %}
+                    <tr>
+                        <td>FILE RECEIVED: {{ file.encrypted_filename }}, FILE DECRYPTION KEY: {{ file.sent_encrypted_filename_key }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <a href="/profile/{{ user._id }}/file-decrypt">
+            <button> Decrypt a File </button>
+        </a>
+        {% endif %}
     {% else %}
         <p>Please log in to access your profile.</p>
     {% endif %}
