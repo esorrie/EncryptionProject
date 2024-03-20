@@ -26,6 +26,13 @@
             {% endif %}
         {% endwith %}
         <br/>
+        {% if key_info %}
+        <h3>Key Debugging Info</h3>
+        <p>Key Type: {{ key_info.type }}</p>
+        <p>Key Length: {{ key_info.length }}</p>  
+        <p>Key (First few bytes): {{ key_info.first_bytes }}</p>
+        <p>Key (First few characaters): {{ key_info.first_char }}</p>
+        {% endif %}
         {% if enc_user_files %}  
         <table>
             <thead>
