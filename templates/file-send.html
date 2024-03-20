@@ -30,8 +30,9 @@
         <h3>Key Debugging Info</h3>
         <p>Key Type: {{ key_info.type }}</p>
         <p>Key Length: {{ key_info.length }}</p>  
-        <p>Key (First few bytes): {{ key_info.first_bytes }}</p>
         <p>Key (First few characaters): {{ key_info.first_char }}</p>
+        <p>Key (encrypted): {{ key_info.output }}</p>
+        <p>Public Key : {{ key_info.public }}</p>
         {% endif %}
         {% if enc_user_files %}  
         <table>

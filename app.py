@@ -24,12 +24,12 @@ from algorithms.rsaProcess.rsaEncryption import rsaEncryption
 
 app = Flask(__name__)
 app.secret_key = "2tc)(h@|HWT4=+8<:ZiUs;(fvd|8;u"
-app.config['UPLOAD_FOLDER'] = 'static/files'
-app.config['ENC_UPLOAD_FOLDER'] = 'static/enc_files'
-app.config['ENC_RECEIVED_FOLDER'] = 'static/enc_files_received'
-app.config['IMAGE_FOLDER'] = 'static/images'
-app.config['ENC_IMAGE_FOLDER'] = 'static/enc_images'
-app.config['ENC_IMAGE_RECEIVED_FOLDER'] = 'static/enc_images_received'
+app.config['UPLOAD_FOLDER'] = 'static/files/files_upload'
+app.config['ENC_UPLOAD_FOLDER'] = 'static/files/enc_files'
+app.config['ENC_KEY_RECEIVED_FOLDER'] = 'static/files/enc_key_received'
+app.config['IMAGE_FOLDER'] = 'static/images/images_upload'
+app.config['ENC_IMAGE_FOLDER'] = 'static/images/enc_images'
+app.config['ENC_IMAGE_RECEIVED_FOLDER'] = 'static/images/enc_images_received'
 FILE_EXTENSIONS ={'txt', 'doc', 'docx', 'pdf'}
 IMAGE_EXTENSIONS ={'jpeg', 'png', 'jpg', 'raw'}
 
@@ -268,72 +268,63 @@ def file_send(user_id):
     if 'user_id' in session:
         user_id = ObjectId(session['user_id'])
         user = users_collection.find_one({'_id': user_id})
-        nonce = user['aes_nonce']
-            
+        # flash(user)
         enc_user_files = enc_files_collection.find({"user_id": user_id})        
         enc_file_list = [(file['_id'], file['encrypted_filename']) for file in enc_files_collection.find({"user_id": user_id})]
         
         users_list = [(user['_id'], user['username']) for user in users_collection.find()]
         
         if request.method == 'POST':
-            try:
-                selected_enc_file_id = request.form['selected_enc_file']
-                file_to_send = enc_files_collection.find_one({'_id': ObjectId(selected_enc_file_id)})
-                
-                recipient_id = request.form['selected_user']
-                recipient = users_collection.find_one({'_id': ObjectId(recipient_id)})
-                
-                keyPublic = recipient['public_Key']
-                aesKey = file_to_send['encryption_key']
-                aesKey_bytes = base64.b64decode(aesKey) 
-                
-                # Check if file exists (optional)
-                if not file_to_send and recipient:
-                    flash("Selected file not found")
-                    return redirect(url_for('file_encrypt', user_id=user_id))
-                
-                # Construct output filename (assuming the original file directory organization needs to be preserved)
-                encrypted_filepath = file_to_send["encrypted_filename"]
-                encrypted_directory, encrypted_filename = os.path.split(encrypted_filepath)  # Split into directory and filename
-                _, encrypted_extension = os.path.splitext(encrypted_filename)
-                sent_output_filename = encrypted_filename[:-len(encrypted_extension)] + '_sent' + encrypted_extension
-                
-                send_output = rsaEncryption(keyPublic, aesKey_bytes)
-                
-                # save sent encrypted file 
-                sent_encrypted_output_directory = os.path.join(app.config['ENC_RECEIVED_FOLDER'], encrypted_directory)
-                os.makedirs(sent_encrypted_output_directory, exist_ok=True)  # Create the directory if it doesn't exist
-                sent_output_path = os.path.join(sent_encrypted_output_directory, sent_output_filename)
+        
+            selected_enc_file_id = request.form['selected_enc_file']
+            file_to_send = enc_files_collection.find_one({'_id': ObjectId(selected_enc_file_id)})
+            # flash(file_to_send)
+            recipient_id = request.form['selected_user']
+            recipient = users_collection.find_one({'_id': ObjectId(recipient_id)})
             
-                with open(sent_output_path, 'wb') as f:
-                    f.write(file_to_send)
-                
-                sent_files_collection.insert_one({
-                    "user_id": user_id,
-                    "encrypted_filename": file_to_send["encrypted_filename"],  # Store original name
-                    "sent_encrypted_filename": sent_output_filename,
-                    # "encryption_key": aesKey,
-                    "user_nonce": nonce,
-                    "rsa_keyPublic": keyPublic,
-                    "encrypted_aesKey": send_output,
-                })
-                flash("Storage success")
-            except Exception as e: 
-                print(f"Encryption Error: {e}") 
-                
-                aesKey_bytes = file_to_send['encryption_key']["$binary"]["base64"]
-                key_info = {
-                    "type": str(type(aesKey_bytes)),  # Convert type to string for the template
-                    "length": len(aesKey_bytes),
-                    "first_bytes": aesKey_bytes[:5].hex(),  # Convert to a hex string for display
-                    "first_char": aesKey[:5].hex()  # Convert to a hex string for display
-                }
+            keyPublic = recipient['public_Key']
+            
+            aesKey = file_to_send['encryption_key']
+            flash("aes key")
+            flash(aesKey) # when called from database auto b64 decoded
+            
+            # Check if file exists (optional)
+            if not file_to_send and recipient:
+                flash("Selected file not found")
+                return redirect(url_for('file_encrypt', user_id=user_id))
+            
+            # Construct output filename (assuming the original file directory organization needs to be preserved)
+            encrypted_filepath = file_to_send["encrypted_filename"]
+            encrypted_directory, encrypted_filename = os.path.split(encrypted_filepath)  # Split into directory and filename
+            _, encrypted_extension = os.path.splitext(encrypted_filename)
+            sent_output_filename = encrypted_filename[:-len(encrypted_extension)] + '_sent' + encrypted_extension
+            
+            send_output = rsaEncryption(keyPublic, aesKey)
+            flash("send_output")
+            flash(send_output)
+            
+            # save sent encrypted file 
+            sent_encrypted_output_directory = os.path.join(app.config['ENC_KEY_RECEIVED_FOLDER'], encrypted_directory)
+            os.makedirs(sent_encrypted_output_directory, exist_ok=True)  # Create the directory if it doesn't exist
+            sent_output_path = os.path.join(sent_encrypted_output_directory, sent_output_filename)
+        
+            with open(sent_output_path, 'wb') as f:
+                f.write(send_output)
+            
+            sent_files_collection.insert_one({
+                "user_id": user_id,
+                "encrypted_filename": file_to_send["encrypted_filename"],  # Store original name
+                "sent_encrypted_filename": sent_output_filename,
+                "encryption_key": aesKey,
+                "rsa_keyPublic": keyPublic,
+                "encrypted_aesKey": send_output,
+            })
+            flash("Storage success")
             return render_template('file-send.html',
                             user = user,
                             enc_user_files=enc_user_files,
                             enc_file_list=enc_file_list,
                             users_list=users_list,
-                            key_info=key_info
                             )
             
     return render_template('file-send.html',
