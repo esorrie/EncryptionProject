@@ -26,14 +26,6 @@
             {% endif %}
         {% endwith %}
         <br/>
-        {% if key_info %}
-        <h3>Key Debugging Info</h3>
-        <p>Key Type: {{ key_info.type }}</p>
-        <p>Key Length: {{ key_info.length }}</p>  
-        <p>Key (First few characaters): {{ key_info.first_char }}</p>
-        <p>Key (encrypted): {{ key_info.output }}</p>
-        <p>Public Key : {{ key_info.public }}</p>
-        {% endif %}
         {% if enc_user_files %}  
         <table>
             <thead>
@@ -53,7 +45,7 @@
             <p>No files uploaded yet.</p>
         {% endif %}
         <br/>
-        Select an existing file to Encrypt!
+        Select an existing encrypted file to send and the user to wish to send the file to!
         <br />
         <form action="/profile/{{ user._id }}/file-send" method="POST">
             <select name="selected_enc_file" id="selected_enc_file">
@@ -71,4 +63,3 @@
         
     </html>
 {% endblock %}
- 
