@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+<head>
+    {% block title %}
+        Encryption Project
+    {% endblock %}
+</head>
+
+{% block content %}
+    <html> 
+        <h1>{{ user.username }}'s Profile</h1>
+        <p>Username: {{ user.username }}</p>
+        <p>Email: {{ user.email }}</p>
+        <body> 
+            {% if filename %}  
+                <p> File Name: {{ filename }} </p> 
+            {% endif %}
+        </body> 
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                <ul> {{ message }} </ul>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        {% endwith %}
+        <br/>
+        {% if received_user_files %}  
+        <table>
+            <thead>
+                <tr>
+                    <th> Received Files</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for file in received_user_files %}
+                    <tr>
+                        <td>{{ file.encrypted_filename }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p>No files received yet.</p>
+        {% endif %}
+        <br/>
+        Select an existing encrypted file to decrypt!
+        <br />
+        <form action="/profile/{{ user._id }}/file-decrypt" method="POST">
+            <select name="selected_received_enc_file" id="selected_received_enc_file">
+                {% for file_id, encrypted_filename in received_file_list %}
+                    <option value="{{ file_id }}">{{ encrypted_filename }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </html>
+{% endblock %}
