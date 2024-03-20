@@ -9,6 +9,11 @@
         <div>
             {% block content %}
                 <h1>Welcome!</h1>
+                <a href="/profile/{{ user._id }}/profile">
+                    <button>
+                        Go to PROFILE
+                    </button>
+                </a>
             {% endblock %} 
         </div>
     </body>
