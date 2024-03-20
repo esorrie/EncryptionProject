@@ -26,6 +26,7 @@ app = Flask(__name__)
 app.secret_key = "2tc)(h@|HWT4=+8<:ZiUs;(fvd|8;u"
 app.config['UPLOAD_FOLDER'] = 'static/files/files_upload'
 app.config['ENC_UPLOAD_FOLDER'] = 'static/files/enc_files'
+app.config['ENC_KEY_SENT_FOLDER'] = 'static/files/enc_key_sent'
 app.config['ENC_KEY_RECEIVED_FOLDER'] = 'static/files/enc_key_received'
 app.config['IMAGE_FOLDER'] = 'static/images/images_upload'
 app.config['ENC_IMAGE_FOLDER'] = 'static/images/enc_images'
@@ -40,6 +41,7 @@ files_collection = db['files']
 images_collection = db['images']
 enc_files_collection = db['enc_files']
 sent_files_collection = db['sent_files']
+received_files_collection = db['received_files']
 enc_images_collection = db['enc_images']
 sent_images_collection = db['sent_images']
 
@@ -283,10 +285,9 @@ def file_send(user_id):
             recipient = users_collection.find_one({'_id': ObjectId(recipient_id)})
             
             keyPublic = recipient['public_Key']
-            
             aesKey = file_to_send['encryption_key']
-            flash("aes key")
-            flash(aesKey) # when called from database auto b64 decoded
+            # flash("aes key")
+            # flash(aesKey) # when called from database auto b64 decoded
             
             # Check if file exists (optional)
             if not file_to_send and recipient:
@@ -297,16 +298,16 @@ def file_send(user_id):
             encrypted_filepath = file_to_send["encrypted_filename"]
             encrypted_directory, encrypted_filename = os.path.split(encrypted_filepath)  # Split into directory and filename
             _, encrypted_extension = os.path.splitext(encrypted_filename)
-            sent_output_filename = encrypted_filename[:-len(encrypted_extension)] + '_sent' + encrypted_extension
+            sent_output_filename_key = encrypted_filename[:-len(encrypted_extension)] + '_key' + encrypted_extension
             
             send_output = rsaEncryption(keyPublic, aesKey)
-            flash("send_output")
-            flash(send_output)
+            # flash("send_output")
+            # flash(send_output)
             
             # save sent encrypted file 
-            sent_encrypted_output_directory = os.path.join(app.config['ENC_KEY_RECEIVED_FOLDER'], encrypted_directory)
+            sent_encrypted_output_directory = os.path.join(app.config['ENC_KEY_SENT_FOLDER'], encrypted_directory)
             os.makedirs(sent_encrypted_output_directory, exist_ok=True)  # Create the directory if it doesn't exist
-            sent_output_path = os.path.join(sent_encrypted_output_directory, sent_output_filename)
+            sent_output_path = os.path.join(sent_encrypted_output_directory, sent_output_filename_key)
         
             with open(sent_output_path, 'wb') as f:
                 f.write(send_output)
@@ -314,12 +315,28 @@ def file_send(user_id):
             sent_files_collection.insert_one({
                 "user_id": user_id,
                 "encrypted_filename": file_to_send["encrypted_filename"],  # Store original name
-                "sent_encrypted_filename": sent_output_filename,
+                "sent_encrypted_filename_key": sent_output_filename_key,
                 "encryption_key": aesKey,
                 "rsa_keyPublic": keyPublic,
                 "encrypted_aesKey": send_output,
             })
             flash("Storage success")
+            # Retrieve absolute file path
+            send_file = os.path.join(app.config["ENC_UPLOAD_FOLDER"], file_to_send["encrypted_filename"])
+            flash(send_file)
+            flash(send_output)
+            flash(recipient)
+            
+            received_files_collection.insert_one({
+                "recipient_id": recipient['_id'],
+                "recipient_username": recipient['username'],
+                "encrypted_filename": file_to_send["encrypted_filename"],  # Store original name
+                "sent_encrypted_filename_key": sent_output_filename_key,
+                "encryption_key": aesKey,
+                "rsa_keyPublic": keyPublic,
+                "encrypted_aesKey": send_output,
+            })
+            
             return render_template('file-send.html',
                             user = user,
                             enc_user_files=enc_user_files,
