@@ -18,16 +18,18 @@ from base64 import b64encode, b64decode # For encoding encrypted data
 import bcrypt # For password hashing
 
 from algorithms.aes256gcm.aesEncryption import aesEncryption
-# from algorithms.aes256gcm.aesDecryption import aesDecryption
+from algorithms.aes256gcm.aesDecryption import aesDecryption
 from algorithms.rsaProcess.rsaEncryption import rsaEncryption
-# from algorithms.rsaProcess.rsaDecryption import rsaDecryption
+from algorithms.rsaProcess.rsaDecryption import rsaDecryption
+
+## TODO : Decrypt received files!!!!!!!!!!
 
 app = Flask(__name__)
 app.secret_key = "2tc)(h@|HWT4=+8<:ZiUs;(fvd|8;u"
 app.config['UPLOAD_FOLDER'] = 'static/files/files_upload'
 app.config['ENC_UPLOAD_FOLDER'] = 'static/files/enc_files'
 app.config['ENC_KEY_SENT_FOLDER'] = 'static/files/enc_key_sent'
-app.config['ENC_KEY_RECEIVED_FOLDER'] = 'static/files/enc_key_received'
+app.config['DECRYPT_FILE_FOLDER'] = 'static/files/decrypt_file'
 app.config['IMAGE_FOLDER'] = 'static/images/images_upload'
 app.config['ENC_IMAGE_FOLDER'] = 'static/images/enc_images'
 app.config['ENC_IMAGE_RECEIVED_FOLDER'] = 'static/images/enc_images_received'
@@ -42,6 +44,7 @@ images_collection = db['images']
 enc_files_collection = db['enc_files']
 sent_files_collection = db['sent_files']
 received_files_collection = db['received_files']
+decrypted_files_collection = db['decrypted_files']
 enc_images_collection = db['enc_images']
 sent_images_collection = db['sent_images']
 
@@ -334,9 +337,9 @@ def file_send(user_id):
             flash("Storage success")
             # Retrieve absolute file path
             send_file = os.path.join(app.config["ENC_UPLOAD_FOLDER"], file_to_send["encrypted_filename"])
-            flash(send_file)
-            flash(send_output)
-            flash(recipient)
+            # flash(send_file)
+            # flash(send_output)
+            # flash(recipient)
             
             received_files_collection.insert_one({
                 "recipient_id": recipient['_id'],
@@ -376,14 +379,43 @@ def file_decrypt(user_id):
         received_file_list = [(file['_id'], file['encrypted_filename']) for file in received_files_collection.find({"recipient_id": recipient_id})]
         
         if request.method == 'POST':
-        
             selected_received_file_id = request.form['selected_received_enc_file']
-            file_to_decrypt = enc_files_collection.find_one({'_id': ObjectId(selected_received_file_id)})
-        
+            file_to_decrypt = received_files_collection.find_one({'_id': ObjectId(selected_received_file_id)})
+            flash(file_to_decrypt)
+            
+            # Check if file exists (optional)
+            if not file_to_decrypt:
+                flash("Selected file not found")
+                return redirect(url_for('file_decrypt', user_id=user_id))
+            
+            #
+            # 
+            # FILE DECRYPTION STARTED
+            # 
+            # 
+            keyPrivate = user['private_Key']
+            flash('Private Key')
+            flash(keyPrivate)
+            # # Retrieve absolute file path (assuming files are in 'static/files')
+            decrypt_key = file_to_decrypt['encrypted_aesKey']
+            flash('Encrypted aes Key')
+            flash(decrypt_key)
+            
+            aesKey = rsaDecryption(decrypt_key, keyPrivate)
+            flash('AES Key')
+            flash(aesKey)
+            
+            decrypt_file = os.path.join(app.config["ENC_KEY_SENT_FOLDER"], file_to_decrypt["encrypted_filename"])
+            flash('decrypt file')
+            flash(decrypt_file)
+            
+            decrypted_file = aesDecryption(decrypt_file, aesKey)
+            
             return render_template('file-decrypt.html',
                                 user = user,
                                 received_user_files = received_user_files,
-                                received_file_list = received_file_list)
+                                received_file_list = received_file_list,
+                                )
         return render_template('file-decrypt.html',
                                 user = user,
                                 received_user_files = received_user_files,
@@ -450,5 +482,3 @@ def img_upload(user_id):
     
 if __name__ == '__main__': 
     app.run(host='0.0.0.0', debug=True) 
-
-## TODO : Use user RSA private key, to encrypt encryption cipher (not AES key)
