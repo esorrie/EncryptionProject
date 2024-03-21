@@ -1,5 +1,5 @@
 # Encrypting the AES key with RSA
-# import rsa
+
 import base64
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
@@ -10,7 +10,7 @@ from cryptography.hazmat.primitives.asymmetric import padding
 # Here we encrypt the aes key with the recipient public key 
 # so the file encryption key (aes key) is safe in transit
 # keyPublic = recipient user public key
-# aseKey = encryption key used to encrypted sent file data
+# aesKey = encryption key used to encrypted sent file data
 #######
 def rsaEncryption(keyPublic, aesKey):
     
@@ -27,7 +27,6 @@ def rsaEncryption(keyPublic, aesKey):
         )
     )
     
-
     # converting enc_aesKey to b64 for transferring 
     b64_enc_aesKey = base64.b64encode(enc_aesKey)
 
