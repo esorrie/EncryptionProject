@@ -22,8 +22,7 @@ from algorithms.aes256gcm.aesDecryption import aesDecryption
 from algorithms.rsaProcess.rsaEncryption import rsaEncryption
 from algorithms.rsaProcess.rsaDecryption import rsaDecryption
 
-## TODO : Decrypt received files!!!!!!!!!!
-
+## TODO : Cant decrypt files, cipher used for encrypting fucks shit up
 app = Flask(__name__)
 app.secret_key = "2tc)(h@|HWT4=+8<:ZiUs;(fvd|8;u"
 app.config['UPLOAD_FOLDER'] = 'static/files/files_upload'
@@ -231,7 +230,7 @@ def file_encrypt(user_id):
             print('AES key generated')
             # Create a cipher object to encrypt data (will use this elsewhere for encrypting and decrypting)
             cipher = AES.new(aesKey, AES.MODE_GCM, nonce=user['aes_nonce'])
-            
+            flash(cipher)
             # Construct output filename (assuming the original file directory organization needs to be preserved)
             original_filepath = file_to_encrypt["filename"]
             original_directory, original_filename = os.path.split(original_filepath)  # Split into directory and filename
@@ -405,11 +404,28 @@ def file_decrypt(user_id):
             flash('AES Key')
             flash(aesKey)
             
-            decrypt_file = os.path.join(app.config["ENC_KEY_SENT_FOLDER"], file_to_decrypt["encrypted_filename"])
+            decrypt_file = os.path.join(app.config["ENC_UPLOAD_FOLDER"], file_to_decrypt["encrypted_filename"])
             flash('decrypt file')
             flash(decrypt_file)
             
-            decrypted_file = aesDecryption(decrypt_file, aesKey)
+            # Construct output filename (assuming the original file directory organization needs to be preserved)
+            original_filepath = file_to_decrypt["encrypted_filename"]
+            original_directory, original_filename = os.path.split(original_filepath)  # Split into directory and filename
+            _, original_extension = os.path.splitext(original_filename)
+            output_filename = original_filename[:-len(original_extension)] + original_extension
+            
+            decrypted_file = aesDecryption(decrypt_file, aesKey, output_filename)
+            flash('file contents')
+            flash(decrypted_file)
+            
+            # save encrypted file 
+            encrypted_output_directory = os.path.join(app.config['DECRYPT_FILE_FOLDER'], original_directory)
+            os.makedirs(encrypted_output_directory, exist_ok=True)  # Create the directory if it doesn't exist
+            encrypted_output_path = os.path.join(encrypted_output_directory, output_filename)
+        
+            with open(encrypted_output_path, 'wb') as f:
+                f.write(decrypted_file)
+
             
             return render_template('file-decrypt.html',
                                 user = user,
