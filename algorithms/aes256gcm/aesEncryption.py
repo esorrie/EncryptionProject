@@ -1,6 +1,7 @@
 # encryption of file with AES 256 GCM
 from base64 import b64encode
 import base64
+from flask import flash
 
 def aesEncryption(input_file, cipher, nonce, encrypted_output_path):
     BUFFER_SIZE = 1024 * 1024 # The size in bytes that we read, encrypt and write to at once
@@ -25,7 +26,10 @@ def aesEncryption(input_file, cipher, nonce, encrypted_output_path):
                 # Get and write the tag for decryption verification
                 tag = cipher.digest()  # Signal to the cipher that we are done and get the tag
                 file_out.write(b64encode(tag))
-
+                flash('tag')
+                flash(tag)
+                flash('b64tag')
+                flash(b64encode(tag))
                 # Close out file
                 file_out.close()
                 
