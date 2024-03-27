@@ -227,7 +227,9 @@ def file_encrypt(user_id):
                             N=2**20, # N=work factor, higher N increases resistance to brute-force attacks
                             r=8, # r = block size parameter, influences the mount of memory required during key derivation
                             p=1) # p = parallelization parameter, useful for running on multiple cores
-            print('AES key generated')
+            flash('AES key generated')
+            flash(len(aesKey))
+            flash(aesKey)
             # Create a cipher object to encrypt data (will use this elsewhere for encrypting and decrypting)
             cipher = AES.new(aesKey, AES.MODE_GCM, nonce=user['aes_nonce'])
             flash(cipher)
@@ -236,19 +238,16 @@ def file_encrypt(user_id):
             original_directory, original_filename = os.path.split(original_filepath)  # Split into directory and filename
             _, original_extension = os.path.splitext(original_filename)
             output_filename = original_filename[:-len(original_extension)] + '_encrypted' + original_extension
-        
-            # Perform Encryption
-            output = aesEncryption(input_file, cipher, salt, nonce, output_filename)
-            flash("Encryption success")
             
-
             # save encrypted file 
             encrypted_output_directory = os.path.join(app.config['ENC_UPLOAD_FOLDER'], original_directory)
             os.makedirs(encrypted_output_directory, exist_ok=True)  # Create the directory if it doesn't exist
             encrypted_output_path = os.path.join(encrypted_output_directory, output_filename)
         
-            with open(encrypted_output_path, 'wb') as f:
-                f.write(output)
+            # Perform Encryption
+            output = aesEncryption(input_file, cipher, nonce, encrypted_output_path)
+            flash("Encryption success")
+            flash(output)
 
             # 
             #
@@ -394,37 +393,45 @@ def file_decrypt(user_id):
             # 
             keyPrivate = user['private_Key']
             flash('Private Key')
+            flash(len(keyPrivate))
             flash(keyPrivate)
             # # Retrieve absolute file path (assuming files are in 'static/files')
             decrypt_key = file_to_decrypt['encrypted_aesKey']
             flash('Encrypted aes Key')
             flash(decrypt_key)
             
-            aesKey = rsaDecryption(decrypt_key, keyPrivate)
+            b64_aesKey = rsaDecryption(decrypt_key, keyPrivate)
             flash('AES Key')
-            flash(aesKey)
+            flash(b64_aesKey)
+            flash(len(b64_aesKey))
+            aesKey = b64decode(b64_aesKey)
             
-            decrypt_file = os.path.join(app.config["ENC_UPLOAD_FOLDER"], file_to_decrypt["encrypted_filename"])
+            flash(aesKey)
+            flash(b64decode(b64_aesKey))
+            flash(len(b64decode(b64_aesKey)))
+            
+            b64_decrypt_file = os.path.join(app.config["ENC_UPLOAD_FOLDER"], file_to_decrypt["encrypted_filename"])
             flash('decrypt file')
-            flash(decrypt_file)
+            flash(b64_decrypt_file)
             
             # Construct output filename (assuming the original file directory organization needs to be preserved)
             original_filepath = file_to_decrypt["encrypted_filename"]
             original_directory, original_filename = os.path.split(original_filepath)  # Split into directory and filename
-            _, original_extension = os.path.splitext(original_filename)
-            output_filename = original_filename[:-len(original_extension)] + original_extension
+            base_filename = original_filename.replace("_encrypted", "")
+            output_filename = base_filename
             
-            decrypted_file = aesDecryption(decrypt_file, aesKey, output_filename)
+            decrypted_text = aesDecryption(b64_decrypt_file, aesKey, output_filename)
+            
             flash('file contents')
-            flash(decrypted_file)
+            flash(decrypted_text)
             
-            # save encrypted file 
-            encrypted_output_directory = os.path.join(app.config['DECRYPT_FILE_FOLDER'], original_directory)
-            os.makedirs(encrypted_output_directory, exist_ok=True)  # Create the directory if it doesn't exist
-            encrypted_output_path = os.path.join(encrypted_output_directory, output_filename)
-        
-            with open(encrypted_output_path, 'wb') as f:
-                f.write(decrypted_file)
+            # save decrypted file 
+            decrypted_output_directory = os.path.join(app.config['DECRYPT_FILE_FOLDER'], original_directory)
+            os.makedirs(decrypted_output_directory, exist_ok=True)  # Create the directory if it doesn't exist
+            decrypted_output_path = os.path.join(decrypted_output_directory, output_filename)
+
+            with open(decrypted_output_path, 'wb') as f:
+                f.write(decrypted_text)
 
             
             return render_template('file-decrypt.html',
@@ -436,6 +443,7 @@ def file_decrypt(user_id):
                                 user = user,
                                 received_user_files = received_user_files,
                                 received_file_list = received_file_list)
+    
     
 @app.route('/profile/<user_id>/image-upload', methods=['GET', 'POST'])
 def img_upload(user_id):
