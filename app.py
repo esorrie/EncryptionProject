@@ -1,4 +1,5 @@
 from json import dump
+import shutil
 from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify
 from pymongo import MongoClient
 from bson import ObjectId
@@ -22,7 +23,8 @@ from algorithms.aes256gcm.aesDecryption import aesDecryption
 from algorithms.rsaProcess.rsaEncryption import rsaEncryption
 from algorithms.rsaProcess.rsaDecryption import rsaDecryption
 
-## TODO : Cant decrypt files, cipher used for encrypting fucks shit up
+## TODO : Tag verification not working
+
 app = Flask(__name__)
 app.secret_key = "2tc)(h@|HWT4=+8<:ZiUs;(fvd|8;u"
 app.config['UPLOAD_FOLDER'] = 'static/files/files_upload'
@@ -219,6 +221,7 @@ def file_encrypt(user_id):
             # File is selected, proceed with encryption
             salt = user['aes_salt']
             nonce = user['aes_nonce']
+            # flash(nonce)
             # Generating the key using scrypt
             # Your key that you can encrypt with, 
             aesKey = scrypt(user['password_hash'],
@@ -227,12 +230,12 @@ def file_encrypt(user_id):
                             N=2**20, # N=work factor, higher N increases resistance to brute-force attacks
                             r=8, # r = block size parameter, influences the mount of memory required during key derivation
                             p=1) # p = parallelization parameter, useful for running on multiple cores
-            flash('AES key generated')
-            flash(len(aesKey))
-            flash(aesKey)
+            # flash('AES key generated')
+            # flash(len(aesKey))
+            # flash(aesKey)
             # Create a cipher object to encrypt data (will use this elsewhere for encrypting and decrypting)
             cipher = AES.new(aesKey, AES.MODE_GCM, nonce=user['aes_nonce'])
-            flash(cipher)
+            # flash(cipher)
             # Construct output filename (assuming the original file directory organization needs to be preserved)
             original_filepath = file_to_encrypt["filename"]
             original_directory, original_filename = os.path.split(original_filepath)  # Split into directory and filename
@@ -247,7 +250,7 @@ def file_encrypt(user_id):
             # Perform Encryption
             output = aesEncryption(input_file, cipher, nonce, encrypted_output_path)
             flash("Encryption success")
-            flash(output)
+            # flash(output)
 
             # 
             #
@@ -319,9 +322,9 @@ def file_send(user_id):
             # save sent encrypted file 
             sent_encrypted_output_directory = os.path.join(app.config['ENC_KEY_SENT_FOLDER'], encrypted_directory)
             os.makedirs(sent_encrypted_output_directory, exist_ok=True)  # Create the directory if it doesn't exist
-            sent_output_path = os.path.join(sent_encrypted_output_directory, sent_output_filename_key)
+            sent_key_output_path = os.path.join(sent_encrypted_output_directory, sent_output_filename_key)
         
-            with open(sent_output_path, 'wb') as f:
+            with open(sent_key_output_path, 'wb') as f:
                 f.write(send_output)
             
             sent_files_collection.insert_one({
@@ -333,11 +336,6 @@ def file_send(user_id):
                 "encrypted_aesKey": send_output,  # to confirm key in file was correct
             })
             flash("Storage success")
-            # Retrieve absolute file path
-            send_file = os.path.join(app.config["ENC_UPLOAD_FOLDER"], file_to_send["encrypted_filename"])
-            # flash(send_file)
-            # flash(send_output)
-            # flash(recipient)
             
             received_files_collection.insert_one({
                 "recipient_id": recipient['_id'],
@@ -379,7 +377,7 @@ def file_decrypt(user_id):
         if request.method == 'POST':
             selected_received_file_id = request.form['selected_received_enc_file']
             file_to_decrypt = received_files_collection.find_one({'_id': ObjectId(selected_received_file_id)})
-            flash(file_to_decrypt)
+            # flash(file_to_decrypt)
             
             # Check if file exists (optional)
             if not file_to_decrypt:
@@ -390,49 +388,44 @@ def file_decrypt(user_id):
             # 
             # FILE DECRYPTION STARTED
             # 
-            # 
+            #
+            
             keyPrivate = user['private_Key']
-            flash('Private Key')
-            flash(len(keyPrivate))
-            flash(keyPrivate)
+            # flash('Private Key')
+            # flash(len(keyPrivate))
+            # flash(keyPrivate)
             # # Retrieve absolute file path (assuming files are in 'static/files')
             decrypt_key = file_to_decrypt['encrypted_aesKey']
-            flash('Encrypted aes Key')
-            flash(decrypt_key)
+            # flash('Encrypted aes Key')
+            # flash(decrypt_key)
             
             b64_aesKey = rsaDecryption(decrypt_key, keyPrivate)
-            flash('AES Key')
-            flash(b64_aesKey)
-            flash(len(b64_aesKey))
-            aesKey = b64decode(b64_aesKey)
-            
+            # flash('AES Key')
+            # flash(b64_aesKey)
+            # flash(len(b64_aesKey))
+            aesKey = b64decode(b64_aesKey)            
             flash(aesKey)
-            flash(b64decode(b64_aesKey))
-            flash(len(b64decode(b64_aesKey)))
+            # flash(b64decode(b64_aesKey))
+            # flash(len(b64decode(b64_aesKey)))
             
             b64_decrypt_file = os.path.join(app.config["ENC_UPLOAD_FOLDER"], file_to_decrypt["encrypted_filename"])
-            flash('decrypt file')
-            flash(b64_decrypt_file)
-            
+            # flash('decrypt file')
+            # flash(b64_decrypt_file)
+
             # Construct output filename (assuming the original file directory organization needs to be preserved)
             original_filepath = file_to_decrypt["encrypted_filename"]
             original_directory, original_filename = os.path.split(original_filepath)  # Split into directory and filename
             base_filename = original_filename.replace("_encrypted", "")
             output_filename = base_filename
             
-            decrypted_text = aesDecryption(b64_decrypt_file, aesKey, output_filename)
-            
-            flash('file contents')
-            flash(decrypted_text)
-            
-            # save decrypted file 
+            # # save decrypted file 
             decrypted_output_directory = os.path.join(app.config['DECRYPT_FILE_FOLDER'], original_directory)
             os.makedirs(decrypted_output_directory, exist_ok=True)  # Create the directory if it doesn't exist
             decrypted_output_path = os.path.join(decrypted_output_directory, output_filename)
 
-            with open(decrypted_output_path, 'wb') as f:
-                f.write(decrypted_text)
-
+            decrypted_text = aesDecryption(b64_decrypt_file, aesKey, decrypted_output_path)
+            flash('decryption success')
+            # flash(decrypted_text)
             
             return render_template('file-decrypt.html',
                                 user = user,
