@@ -10,7 +10,7 @@ def aesEncryption(input_file, cipher, nonce, encrypted_output_path):
     if input_file:
         with open(encrypted_output_path, 'wb') as file_out: 
             print("Starting encryption process")  # Debug comment
-            file_out.write(b64encode(nonce))  # Write out the nonce to the top of the output file
+            file_out.write(nonce)  # Write out the nonce to the top of the output file
             
             # User selected a file, open and read its contents
             with open(input_file, 'rb') as file_content:
@@ -25,7 +25,7 @@ def aesEncryption(input_file, cipher, nonce, encrypted_output_path):
 
                 # Get and write the tag for decryption verification
                 tag = cipher.digest()  # Signal to the cipher that we are done and get the tag
-                file_out.write(b64encode(tag))
+                file_out.write(tag)
                 flash('tag')
                 flash(tag)
                 flash('b64tag')
