@@ -5,17 +5,17 @@
 ---
 
 ### Installation/Setup
-Prerequisites - Install python
+Prerequisites - Docker
 
 To install the necessary packages, run: 
 PyCryptoDome (for aes)- 
 ```bat
-$python3 -m pip install pycryptodome
+$ docker compose build
 ```
 
 RSA - 
 ```bat
-$ pip install rsa cryptography
+$ docker compose up
 ``` 
 
 ---
