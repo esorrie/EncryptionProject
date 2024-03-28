@@ -28,8 +28,7 @@ def aesEncryption(input_file, cipher, nonce, encrypted_output_path):
                 file_out.write(tag)
                 flash('tag')
                 flash(tag)
-                flash('b64tag')
-                flash(b64encode(tag))
+
                 # Close out file
                 file_out.close()
                 
