@@ -23,7 +23,7 @@ from algorithms.aes256gcm.aesDecryption import aesDecryption
 from algorithms.rsaProcess.rsaEncryption import rsaEncryption
 from algorithms.rsaProcess.rsaDecryption import rsaDecryption
 
-## TODO : Tag verification not working
+## TODO : Do everything all again for images
 
 app = Flask(__name__)
 app.secret_key = "2tc)(h@|HWT4=+8<:ZiUs;(fvd|8;u"
@@ -33,9 +33,10 @@ app.config['ENC_KEY_SENT_FOLDER'] = 'static/files/enc_key_sent'
 app.config['DECRYPT_FILE_FOLDER'] = 'static/files/decrypt_file'
 app.config['IMAGE_FOLDER'] = 'static/images/images_upload'
 app.config['ENC_IMAGE_FOLDER'] = 'static/images/enc_images'
-app.config['ENC_IMAGE_RECEIVED_FOLDER'] = 'static/images/enc_images_received'
+app.config['ENC_KEY_SENT_IMAGE'] = 'static/images/enc_images_sent'
+app.config['DECRYPT_IMAGE_FOLDER'] = 'static/files/decrypt_image'
 FILE_EXTENSIONS ={'txt', 'doc', 'docx', 'pdf'}
-IMAGE_EXTENSIONS ={'jpeg', 'png', 'jpg', 'raw'}
+IMAGE_EXTENSIONS ={'jpeg', 'png', 'jpg', 'raw', 'ppm'}
 
 client = MongoClient(host='project_mongodb', port=27017)
 db = client["project_mongodb"]
@@ -443,25 +444,33 @@ def img_upload(user_id):
     if 'user_id' in session:
         user_id = ObjectId(session['user_id'])
         user = users_collection.find_one({'_id': user_id})
-        form = UploadFileForm()
-        user_images = images_collection.find({"user_id": user_id})
         
+        user_images = images_collection.find({"user_id": user_id})
+        images_list = [(image['_id'], image['image_name']) for image in images_collection.find({"user_id": user_id})]
+        
+        enc_user_images = enc_images_collection.find({"user_id": user_id})
+        enc_images_list = [(image['_id'], image['encrypted_image_name']) for image in enc_images_collection.find({"user_id": user_id})]
+        
+        form = UploadFileForm()
         if form.validate_on_submit():
             image = form.file.data # get file data
-            filename = secure_filename(image.filename)
-            if allowedImage(filename):
+            image_name = secure_filename(image.filename)
+            if allowedImage(image_name):
                 image.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),
                                         app.config['IMAGE_FOLDER'],
                                         secure_filename(image.filename))) # save file
                 images_collection.insert_one({
                     "user_id": user_id,
-                    "filename": filename
+                    "image_name": image_name
                 })
                 return render_template('img-upload.html',
                                         user = user,
                                         form=form,
-                                        filename=filename,
-                                        user_images=user_images
+                                        image_name=image_name,
+                                        user_images=user_images,
+                                        images_list = images_list,
+                                        enc_user_images = enc_user_images,
+                                        enc_images_list =enc_images_list
                                         )    
             else:
                 flash('Invalid File Type')
@@ -469,33 +478,21 @@ def img_upload(user_id):
                 return render_template('img-upload.html',
                                         user = user,
                                         form=form,
-                                        user_images=user_images
+                                        user_images=user_images,
+                                        images_list = images_list,
+                                        enc_user_images = enc_user_images,
+                                        enc_images_list =enc_images_list
                                         )
         
         return render_template('img-upload.html',
                                 user = user,
                                 form=form,
-                                user_images=user_images
+                                user_images=user_images,
+                                images_list = images_list,
+                                enc_user_images = enc_user_images,
+                                enc_images_list =enc_images_list
                                 )
             
-            # if input_file.filename == '':
-            #     flash("File not selected")
-            # else:
-            #     # File is selected, proceed with encryption
-            #     salt = user['aes_salt']
-            #     nonce = user['aes_nonce']
-            #     # Generating the key using scrypt
-            #     # Your key that you can encrypt with, 
-            #     # N=work factor, higher N increases resistance to brute-force attacks
-            #     # r = block size parameter, influences the mount of memory required during key derivation
-            #     # p = parallelization parameter, useful for running on multiple cores
-            #     aesKey = scrypt(user['password_hash'],
-            #                     salt=user['aes_salt'],
-            #                     key_len=32,
-            #                     N=2**20,
-            #                     r=8,
-            #                     p=1) 
-            #     print('AES key generated')
-    
+            
 if __name__ == '__main__': 
     app.run(host='0.0.0.0', debug=True) 

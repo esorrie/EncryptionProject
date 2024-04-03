@@ -12,8 +12,8 @@
         <p>Username: {{ user.username }}</p>
         <p>Email: {{ user.email }}</p>
         <body> 
-            {% if filename %}  
-                <p> File Name: {{ filename }} </p> 
+            {% if image_name %}  
+                <p> File Name: {{ image_name }} </p> 
             {% endif %}
         </body> 
         {% with messages = get_flashed_messages() %}
@@ -31,7 +31,7 @@
             {{ form.submit }}
         </form>
         <br/>
-        {% if user_files %}  
+        {% if user_images %}  
         <table>
             <thead>
                 <tr>
@@ -39,9 +39,9 @@
                 </tr>
             </thead>
             <tbody>
-                {% for file in user_files %}
+                {% for image in user_images %}
                     <tr>
-                        <td>{{ file.filename }}</td>
+                        <td>{{ image.filename }}</td>
                     </tr>
                 {% endfor %}
             </tbody>
