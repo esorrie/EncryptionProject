@@ -35,13 +35,27 @@
         <table>
             <thead>
                 <tr>
-                    <th>Filename</th>
+                    <th>Files</th>
                 </tr>
             </thead>
             <tbody>
                 {% for image in user_images %}
                     <tr>
-                        <td>{{ image.filename }}</td>
+                        <td>{{ image.image_name }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <table>
+            <thead>
+                <tr>
+                    <th>Encrypted Files</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for image in enc_user_images %}
+                    <tr>
+                        <td>{{ image.encrypted_image_name }}</td>
                     </tr>
                 {% endfor %}
             </tbody>
@@ -50,6 +64,17 @@
             <p>No files uploaded yet.</p>
         {% endif %}
         <br/>
-        
+        <a href="/profile/{{ user._id }}/image-encrypt"> 
+            <button>
+                Encrypt a File 
+            </button>
+        </a>
+        <br>
+        </br>
+        <a href="/profile/{{ user._id }}/image-send"> 
+            <button>
+                Send an Encrypted File 
+            </button>
+        </a>
     </html>
 {% endblock %}
