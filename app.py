@@ -19,7 +19,7 @@ from base64 import b64encode, b64decode # For encoding encrypted data
 import bcrypt # For password hashing
 
 from algorithms.aes256gcm.aesEncryption import aesFileEncryption, aesImageEncryption
-from algorithms.aes256gcm.aesDecryption import aesDecryption
+from algorithms.aes256gcm.aesDecryption import aesFileDecryption, aesImageDecryption
 from algorithms.rsaProcess.rsaEncryption import rsaEncryption
 from algorithms.rsaProcess.rsaDecryption import rsaDecryption
 
@@ -34,7 +34,7 @@ app.config['DECRYPT_FILE_FOLDER'] = 'static/files/decrypt_file'
 app.config['IMAGE_FOLDER'] = 'static/images/images_upload'
 app.config['ENC_IMAGE_FOLDER'] = 'static/images/enc_images'
 app.config['ENC_KEY_SENT_IMAGE'] = 'static/images/enc_images_sent'
-app.config['DECRYPT_IMAGE_FOLDER'] = 'static/files/decrypt_image'
+app.config['DECRYPT_IMAGE_FOLDER'] = 'static/images/decrypt_image'
 FILE_EXTENSIONS ={'txt', 'doc', 'docx', 'pdf'}
 IMAGE_EXTENSIONS ={'jpeg', 'png', 'jpg', 'raw', 'ppm'}
 
@@ -430,7 +430,7 @@ def file_decrypt(user_id):
             os.makedirs(decrypted_output_directory, exist_ok=True)  # Create the directory if it doesn't exist
             decrypted_output_path = os.path.join(decrypted_output_directory, output_filename)
 
-            decrypted_text = aesDecryption(b64_decrypt_file, aesKey, decrypted_output_path)
+            decrypted_text = aesFileDecryption(b64_decrypt_file, aesKey, decrypted_output_path)
             flash('decryption success')
             # flash(decrypted_text)
             
@@ -642,6 +642,83 @@ def image_send(user_id):
                                 enc_images_list=enc_images_list,
                                 users_list=users_list,
                                 )
+
+@app.route('/profile/<user_id>/image-decrypt', methods=['GET', 'POST'])
+def image_decrypt(user_id):
+    if 'user_id' in session:
+        user_id = ObjectId(session['user_id'])
+        user = users_collection.find_one({'_id': user_id})
+        
+        recipient_id = user_id
+        # flash(user_id)
+        # flash(recipient_id)
+        
+        received_user_images = received_images_collection.find({"recipient_id": recipient_id})        
+        received_images_list = [(image['_id'], image['encrypted_filename']) for image in received_images_collection.find({"recipient_id": recipient_id})]
+        
+        if request.method == 'POST':
+            selected_received_image_id = request.form['selected_received_enc_image']
+            image_to_decrypt = received_images_collection.find_one({'_id': ObjectId(selected_received_image_id)})
+            # flash(file_to_decrypt)
+            
+            # Check if file exists (optional)
+            if not image_to_decrypt:
+                flash("Selected image not found")
+                return redirect(url_for('image_decrypt', user_id=user_id))
+            
+            #
+            # 
+            # FILE DECRYPTION STARTED
+            # 
+            #
+            
+            keyPrivate = user['private_Key']
+            # flash('Private Key')
+            # flash(len(keyPrivate))
+            # flash(keyPrivate)
+            # # Retrieve absolute file path (assuming files are in 'static/files')
+            decrypt_key = image_to_decrypt['encrypted_aesKey']
+            # flash('Encrypted aes Key')
+            # flash(decrypt_key)
+            
+            b64_aesKey = rsaDecryption(decrypt_key, keyPrivate)
+            # flash('AES Key')
+            # flash(b64_aesKey)
+            # flash(len(b64_aesKey))
+            aesKey = b64decode(b64_aesKey)            
+            flash(aesKey)
+            # flash(b64decode(b64_aesKey))
+            # flash(len(b64decode(b64_aesKey)))
+            
+            b64_decrypt_image = os.path.join(app.config["ENC_IMAGE_FOLDER"], image_to_decrypt["encrypted_filename"])
+            # flash('decrypt file')
+            # flash(b64_decrypt_file)
+
+            # Construct output filename (assuming the original file directory organization needs to be preserved)
+            original_filepath = image_to_decrypt["encrypted_filename"]
+            original_directory, original_imagename = os.path.split(original_filepath)  # Split into directory and filename
+            base_filename = original_imagename.replace("_encrypted", "")
+            output_filename = base_filename
+            
+            # # save decrypted file 
+            decrypted_output_directory = os.path.join(app.config['DECRYPT_IMAGE_FOLDER'], original_directory)
+            os.makedirs(decrypted_output_directory, exist_ok=True)  # Create the directory if it doesn't exist
+            decrypted_output_path = os.path.join(decrypted_output_directory, output_filename)
+
+            decrypted_text = aesImageDecryption(b64_decrypt_image, aesKey, decrypted_output_path)
+            flash('decryption success')
+            # flash(decrypted_text)
+            
+            return render_template('img-decrypt.html',
+                                user = user,
+                                received_user_images = received_user_images,
+                                received_images_list = received_images_list,
+                                )
+        return render_template('img-decrypt.html',
+                                user = user,
+                                received_user_images = received_user_images,
+                                received_images_list = received_images_list)
+    
 
 if __name__ == '__main__': 
     app.run(host='0.0.0.0', debug=True) 
