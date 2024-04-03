@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+<head>
+    {% block title %}
+        Encryption Project
+    {% endblock %}
+</head>
+
+{% block content %}
+    <html> 
+        <h1>{{ user.username }}'s Profile</h1>
+        <p>Username: {{ user.username }}</p>
+        <p>Email: {{ user.email }}</p>
+        <body> 
+            {% if filename %}  
+                <p> File Name: {{ filename }} </p> 
+            {% endif %}
+        </body> 
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                <ul> {{ message }} </ul>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        {% endwith %}
+        <br/>
+        {% if enc_user_images %}  
+        <table>
+            <thead>
+                <tr>
+                    <th> Encrypted Images</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for image in enc_user_images %}
+                    <tr>
+                        <td>{{ image.encrypted_filename }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p>No images uploaded yet.</p>
+        {% endif %}
+        <br/>
+        Select an existing encrypted image to send and the user to wish to send the image to!
+        <br />
+        <form action="/profile/{{ user._id }}/image-send" method="POST">
+            <select name="selected_enc_image" id="selected_enc_image">
+                {% for image_id, encrypted_filename in enc_images_list %}
+                    <option value="{{ image_id }}">{{ encrypted_filename }}</option>
+                {% endfor %}
+            </select>
+            <select name="selected_user" id="selected_user">
+                {% for user_id, username in users_list %}
+                    <option value="{{ user_id }}">{{ username }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Send</button>
+        </form>
+        
+    </html>
+{% endblock %}

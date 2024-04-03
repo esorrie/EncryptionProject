@@ -49,6 +49,7 @@ decrypted_files_collection = db['decrypted_files']
 images_collection = db['images']
 enc_images_collection = db['enc_images']
 sent_images_collection = db['sent_images']
+received_images_collection = db['received_images']
 
 class UploadFileForm(FlaskForm):
     file = FileField("File")
@@ -449,7 +450,7 @@ def img_upload(user_id):
         images_list = [(image['_id'], image['image_name']) for image in images_collection.find({"user_id": user_id})]
         
         enc_user_images = enc_images_collection.find({"user_id": user_id})
-        enc_images_list = [(image['_id'], image['encrypted_image_name']) for image in enc_images_collection.find({"user_id": user_id})]
+        enc_images_list = [(image['_id'], image['encrypted_filename']) for image in enc_images_collection.find({"user_id": user_id})]
         
         form = UploadFileForm()
         if form.validate_on_submit():
@@ -563,7 +564,79 @@ def image_encrypt(user_id):
 
 @app.route('/profile/<user_id>/image-send', methods=['GET', 'POST'])
 def image_send(user_id):
-    return None
+    if 'user_id' in session:
+        user_id = ObjectId(session['user_id'])
+        user = users_collection.find_one({'_id': user_id})
+        # flash(user)
+        enc_user_images = enc_images_collection.find({"user_id": user_id})        
+        enc_images_list = [(image['_id'], image['encrypted_filename']) for image in enc_images_collection.find({"user_id": user_id})]
+        
+        users_list = [(user['_id'], user['username']) for user in users_collection.find()]
+        
+        if request.method == 'POST':
+        
+            selected_enc_image_id = request.form['selected_enc_image']
+            image_to_send = enc_images_collection.find_one({'_id': ObjectId(selected_enc_image_id)})
+            
+            recipient_id = request.form['selected_user']
+            recipient = users_collection.find_one({'_id': ObjectId(recipient_id)})
+            
+            keyPublic = recipient['public_Key']
+            aesKey = image_to_send['encryption_key']
+            
+            # Check if file exists (optional)
+            if not image_to_send and recipient:
+                flash("Selected file not found")
+                return redirect(url_for('file_encrypt', user_id=user_id))
+            
+            # Construct output filename (assuming the original file directory organization needs to be preserved)
+            encrypted_filepath = image_to_send["encrypted_filename"]
+            encrypted_directory, encrypted_imagename = os.path.split(encrypted_filepath)  # Split into directory and filename
+            _, encrypted_extension = os.path.splitext(encrypted_imagename)
+            sent_output_imagename_key = encrypted_imagename[:-len(encrypted_extension)] + '_key' + encrypted_extension
+            
+            send_output = rsaEncryption(keyPublic, aesKey)
+            
+            # save sent encrypted file 
+            sent_encrypted_output_directory = os.path.join(app.config['ENC_KEY_SENT_IMAGE'], encrypted_directory)
+            os.makedirs(sent_encrypted_output_directory, exist_ok=True)  # Create the directory if it doesn't exist
+            sent_key_output_path = os.path.join(sent_encrypted_output_directory, sent_output_imagename_key)
+        
+            with open(sent_key_output_path, 'wb') as f:
+                f.write(send_output)
+                
+            sent_images_collection.insert_one({
+                "user_id": user_id,
+                "encrypted_filename": image_to_send["encrypted_filename"],  # Store original name
+                "sent_encrypted_filename_key": sent_output_imagename_key,
+                "encryption_key": aesKey,
+                "rsa_keyPublic": keyPublic,
+                "encrypted_aesKey": send_output,  # to confirm key in file was correct
+            })
+            flash("Storage success")
+        
+            received_images_collection.insert_one({
+                "recipient_id": recipient['_id'],
+                "recipient_username": recipient['username'],
+                "encrypted_filename": image_to_send["encrypted_filename"],  # Store original name
+                "sent_encrypted_filename_key": sent_output_imagename_key,
+                "encryption_key": aesKey,
+                "rsa_keyPublic": keyPublic,
+                "encrypted_aesKey": send_output, # to confirm key in file was correct
+            })
+            
+            return render_template('img-send.html',
+                            user = user,
+                            enc_user_files=enc_user_images,
+                            enc_file_list=enc_images_list,
+                            users_list=users_list,
+                            )
+    return render_template('img-send.html',
+                                user = user,
+                                enc_user_images=enc_user_images,
+                                enc_images_list=enc_images_list,
+                                users_list=users_list,
+                                )
 
 if __name__ == '__main__': 
     app.run(host='0.0.0.0', debug=True) 
