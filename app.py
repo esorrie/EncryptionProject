@@ -134,9 +134,14 @@ def profile(user_id):
         received_user_files = received_files_collection.find({"recipient_id": recipient_id})        
         received_file_list = [(file['_id'], file['encrypted_filename']) for file in received_files_collection.find({"user_id": user_id})]
         
+        received_user_images = received_images_collection.find({"recipient_id": recipient_id})        
+        received_images_list = [(image['_id'], image['encrypted_filename']) for image in received_images_collection.find({"user_id": user_id})]
+        
         return render_template('user.html', user = user,
                                 received_user_files=received_user_files,
-                                received_file_list=received_file_list)
+                                received_file_list=received_file_list,
+                                received_user_images=received_user_images,
+                                received_images_list=received_images_list)
     
     return 'Please log in to view profile', 401 
     
