@@ -48,6 +48,25 @@
         <a href="/profile/{{ user._id }}/file-decrypt">
             <button> Decrypt a File </button>
         </a>
+        <table>
+            <thead>
+                <tr>    
+                    <th>
+                        Recieved Images and Keys
+                    </h>
+                </tr>
+            </thead>
+            <tbody>
+                {% for image in received_user_images %}
+                    <tr>
+                        <td>IMAGE RECEIVED: {{ image.encrypted_filename }}, IMAGE DECRYPTION KEY: {{ image.sent_encrypted_filename_key }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <a href="/profile/{{ user._id }}/image-decrypt">
+            <button> Decrypt an Image </button>
+        </a>
         {% endif %}
     {% else %}
         <p>Please log in to access your profile.</p>
