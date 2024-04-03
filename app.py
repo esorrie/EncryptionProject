@@ -18,7 +18,7 @@ import base64
 from base64 import b64encode, b64decode # For encoding encrypted data
 import bcrypt # For password hashing
 
-from algorithms.aes256gcm.aesEncryption import aesEncryption
+from algorithms.aes256gcm.aesEncryption import aesFileEncryption, aesImageEncryption
 from algorithms.aes256gcm.aesDecryption import aesDecryption
 from algorithms.rsaProcess.rsaEncryption import rsaEncryption
 from algorithms.rsaProcess.rsaDecryption import rsaDecryption
@@ -42,11 +42,11 @@ client = MongoClient(host='project_mongodb', port=27017)
 db = client["project_mongodb"]
 users_collection = db['users']
 files_collection = db['files']
-images_collection = db['images']
 enc_files_collection = db['enc_files']
 sent_files_collection = db['sent_files']
 received_files_collection = db['received_files']
 decrypted_files_collection = db['decrypted_files']
+images_collection = db['images']
 enc_images_collection = db['enc_images']
 sent_images_collection = db['sent_images']
 
@@ -249,7 +249,7 @@ def file_encrypt(user_id):
             encrypted_output_path = os.path.join(encrypted_output_directory, output_filename)
         
             # Perform Encryption
-            output = aesEncryption(input_file, cipher, nonce, encrypted_output_path)
+            output = aesFileEncryption(input_file, cipher, nonce, encrypted_output_path)
             flash("Encryption success")
             # flash(output)
 
@@ -493,6 +493,77 @@ def img_upload(user_id):
                                 enc_images_list =enc_images_list
                                 )
             
+@app.route('/profile/<user_id>/image-encrypt', methods=['GET', 'POST'])
+def image_encrypt(user_id):
+    if 'user_id' in session:
+        user_id = ObjectId(session['user_id'])
+        user = users_collection.find_one({'_id': user_id})
+        
+        user_images = images_collection.find({"user_id": user_id})
+        images_list = [(image['_id'], image['image_name']) for image in images_collection.find({"user_id": user_id})]
+
+        if request.method == 'POST':
+            selected_image_id = request.form['selected_file']
+            image_to_encrypt = images_collection.find_one({'_id': ObjectId(selected_image_id)})
             
+            if not image_to_encrypt:
+                flash("Selected image not found")
+                return redirect(url_for('image_encrypt', user_id=user_id))
+            
+            input_image = os.path.join(app.config["IMAGE_FOLDER"], image_to_encrypt["image_name"])
+            
+            salt = user['aes_salt']
+            nonce = user['aes_nonce']
+            
+            aesKey = scrypt(user['password_hash'],
+                            salt=user['aes_salt'],
+                            key_len=32,
+                            N=2**20, # N=work factor, higher N increases resistance to brute-force attacks
+                            r=8, # r = block size parameter, influences the mount of memory required during key derivation
+                            p=1) # p = parallelization parameter, useful for running on multiple cores
+            
+            # Create a cipher object to encrypt data (will use this elsewhere for encrypting and decrypting)
+            cipher = AES.new(aesKey, AES.MODE_GCM, nonce=nonce)
+            
+            # Construct output filename (assuming the original file directory organization needs to be preserved)
+            original_imagepath = image_to_encrypt["image_name"]
+            original_directory, original_imagename = os.path.split(original_imagepath)
+            _, original_extension = os.path.splitext(original_imagename)
+            output_imagename = original_imagename[:-len(original_extension)] + '_encrypted' + original_extension
+            
+            # save encrypted image
+            encrypted_output_directory = os.path.join(app.config['ENC_IMAGE_FOLDER'], original_directory)
+            os.makedirs(encrypted_output_directory, exist_ok=True)
+            encrypted_output_path =os.path.join(encrypted_output_directory, output_imagename)
+            
+            output = aesImageEncryption(input_image, cipher, nonce, encrypted_output_path)
+            flash("Encryption success")
+            
+            enc_images_collection.insert_one({
+                "user_id": user_id,
+                "original_filename": image_to_encrypt["image_name"],  # Store original name
+                "encrypted_filename": output_imagename,
+                "encryption_key": aesKey,
+                "salt": salt,
+                "nonce": nonce,
+            })
+            flash("Storage success")
+            
+            return render_template('img-encrypt.html',
+                                user = user,
+                                user_images=user_images,
+                                images_list_list=images_list,
+                                )
+            
+        return render_template('img-encrypt.html',
+                                user = user,
+                                user_images=user_images,
+                                images_list = images_list,
+                                )
+
+@app.route('/profile/<user_id>/image-send', methods=['GET', 'POST'])
+def image_send(user_id):
+    return None
+
 if __name__ == '__main__': 
     app.run(host='0.0.0.0', debug=True) 
