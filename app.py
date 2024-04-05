@@ -9,8 +9,8 @@ from werkzeug.utils import secure_filename
 import os
 import sys
 
-from PIL import Image
-
+# from PIL import Image
+import cv2
 
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES
@@ -470,18 +470,23 @@ def img_upload(user_id):
             image_name = secure_filename(image.filename)
             if allowedImage(image_name):
                 
-                image.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                original_image_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                                         app.config['IMAGE_FOLDER'],
-                                        secure_filename(image.filename))) # save file
+                                        secure_filename(image.filename)) # save file
+                image.save(original_image_path)
+                
                 # 
                 # 
                 # CONVERTING TO PPM FORMAT
                 # 
                 # 
                 
-                ppm_filename = os.path.splitext(image_name)[0] + '.ppm'
-                ppm_filepath = os.path.join(app.config['IMAGE_FOLDER'], ppm_filename)
-                convert_to_ppm(image, ppm_filepath)
+                img = cv2.imread(original_image_path)
+                ppm_filename = image_name +'.ppm'
+                ppm_path = os.path.join(app.config['IMAGE_FOLDER'], ppm_filename)
+                cv2.imwrite(ppm_path, img, [cv2.IMWRITE_PXM_BINARY, 6])
+                
+                
                 
                 # 
                 # 
