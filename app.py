@@ -8,7 +8,9 @@ from wtforms import FileField, SubmitField
 from werkzeug.utils import secure_filename
 import os
 import sys
-from pprint import pprint  # For formatted output
+
+from PIL import Image
+
 
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES
@@ -23,7 +25,7 @@ from algorithms.aes256gcm.aesDecryption import aesFileDecryption, aesImageDecryp
 from algorithms.rsaProcess.rsaEncryption import rsaEncryption
 from algorithms.rsaProcess.rsaDecryption import rsaDecryption
 
-## TODO : Do everything all again for images
+## TODO : convert any image selected for encryption to .ppm, remove the image header, then grayscale the .ppm image, encrypt image data then add image header back into file
 
 app = Flask(__name__)
 app.secret_key = "2tc)(h@|HWT4=+8<:ZiUs;(fvd|8;u"
@@ -445,6 +447,11 @@ def file_decrypt(user_id):
                                 received_file_list = received_file_list)
     
     
+def convert_to_ppm(input_image_stream, output_image_path):
+    """Converts an image (from an in-memory stream) to PPM format."""
+    img = Image.open(input_image_stream)
+    img.save(output_image_path, 'PPM')
+    
 @app.route('/profile/<user_id>/image-upload', methods=['GET', 'POST'])
 def img_upload(user_id):
     if 'user_id' in session:
@@ -462,12 +469,29 @@ def img_upload(user_id):
             image = form.file.data # get file data
             image_name = secure_filename(image.filename)
             if allowedImage(image_name):
+                
                 image.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),
                                         app.config['IMAGE_FOLDER'],
                                         secure_filename(image.filename))) # save file
+                # 
+                # 
+                # CONVERTING TO PPM FORMAT
+                # 
+                # 
+                
+                ppm_filename = os.path.splitext(image_name)[0] + '.ppm'
+                ppm_filepath = os.path.join(app.config['IMAGE_FOLDER'], ppm_filename)
+                convert_to_ppm(image, ppm_filepath)
+                
+                # 
+                # 
+                # CONVERTED TO PPM FORMAT
+                # 
+                # 
+                
                 images_collection.insert_one({
                     "user_id": user_id,
-                    "image_name": image_name
+                    "image_name": ppm_filename
                 })
                 return render_template('img-upload.html',
                                         user = user,

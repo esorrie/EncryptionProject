@@ -6,3 +6,4 @@ flask_wtf >= 0.0.0
 wtforms >= 0.0.0
 rsa >= 0.0.0
 cryptography >= 0.0.0
+Pillow >= 0.0.0
