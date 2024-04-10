@@ -76,7 +76,6 @@ def aesImageDecryption(b64_decrypt_image, aesKey, decrypted_output_path):
                 file_content.seek(12)
                 b64_encrypted_data = file_content.read(BUFFER_SIZE)
                 
-                cipher.verify(tag) # checks tag before decryption 
                 
                 while len(b64_encrypted_data) != 0:
                     encrypted_data = b64decode(b64_encrypted_data)
@@ -86,6 +85,7 @@ def aesImageDecryption(b64_decrypt_image, aesKey, decrypted_output_path):
                     # flash("decrypted data")
                     # flash(decrypted_data)
 
+                cipher.verify(tag) # checks tag before decryption 
             file_out.close()
 
     return decrypted_output_path
