@@ -24,8 +24,8 @@ def rsaEncryption(keyPublic, aesKey):
             mgf=padding.MGF1(algorithm=hashes.SHA256()),
             algorithm=hashes.SHA256(),
             label=None
-        )
-    )
+        ) # adding padding to the aesKey and then encrypting with the RSA public key
+    ) # OAEP adds extra protection to the aes key 
     
     # converting enc_aesKey to b64 for transferring 
     b64_enc_aesKey = base64.b64encode(enc_aesKey)
