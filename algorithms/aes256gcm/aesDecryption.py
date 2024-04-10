@@ -38,7 +38,6 @@ def aesFileDecryption(b64_decrypt_file, aesKey, decrypted_output_path):
                 # flash('b_64_encrypted data')
                 # flash(b64_encrypted_data)
                 
-                cipher.verify(tag) # checks tag before decryption 
                 
                 while len(b64_encrypted_data) != 0:
                     encrypted_data = b64decode(b64_encrypted_data)
@@ -48,6 +47,7 @@ def aesFileDecryption(b64_decrypt_file, aesKey, decrypted_output_path):
                     # flash("decrypted data")
                     # flash(decrypted_data)
                     
+                cipher.verify(tag) # checks tag before decryption 
 
             file_out.close()
 
