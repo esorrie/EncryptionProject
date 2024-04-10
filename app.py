@@ -571,7 +571,7 @@ def image_encrypt(user_id):
                 input_image = os.path.join(app.config["IMAGE_FOLDER"], image_to_encrypt["image_name"])
                 
                 salt = user['aes_salt']
-                nonce = user['aes_nonce']
+                nonce = get_random_bytes(12)
                 
                 aesKey = scrypt(user['password_hash'],
                                 salt=user['aes_salt'],
@@ -614,7 +614,7 @@ def image_encrypt(user_id):
                 ppm_input_image = os.path.join(app.config["PPM_IMAGE_FOLDER"], ppm_image_to_encrypt["ppm_image_name"])
             
                 salt = user['aes_salt']
-                nonce = user['aes_nonce']
+                nonce = get_random_bytes(12)
                 
                 aesKey = scrypt(user['password_hash'],
                                 salt=user['aes_salt'],
