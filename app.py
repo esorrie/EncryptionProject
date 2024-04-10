@@ -20,7 +20,7 @@ import base64
 from base64 import b64encode, b64decode # For encoding encrypted data
 import bcrypt # For password hashing
 
-from algorithms.aes256gcm.aesEncryption import aesFileEncryption, aesImageEncryption
+from algorithms.aes256gcm.aesEncryption import aesFileEncryption, aesImageEncryption, aesPPMImageEncryption
 from algorithms.aes256gcm.aesDecryption import aesFileDecryption, aesImageDecryption
 from algorithms.rsaProcess.rsaEncryption import rsaEncryption
 from algorithms.rsaProcess.rsaDecryption import rsaDecryption
@@ -37,6 +37,9 @@ app.config['IMAGE_FOLDER'] = 'static/images/images_upload'
 app.config['ENC_IMAGE_FOLDER'] = 'static/images/enc_images'
 app.config['ENC_KEY_SENT_IMAGE'] = 'static/images/enc_images_sent'
 app.config['DECRYPT_IMAGE_FOLDER'] = 'static/images/decrypt_image'
+app.config['PPM_IMAGE_FOLDER'] = 'static/images/ppm_images_upload'
+app.config['PPM_ENC_IMAGE_FOLDER'] = 'static/images/enc_ppm_images'
+
 FILE_EXTENSIONS ={'txt', 'doc', 'docx', 'pdf'}
 IMAGE_EXTENSIONS ={'jpeg', 'png', 'jpg', 'raw', 'ppm'}
 
@@ -52,6 +55,8 @@ images_collection = db['images']
 enc_images_collection = db['enc_images']
 sent_images_collection = db['sent_images']
 received_images_collection = db['received_images']
+ppm_images_collection = db['ppm_images']
+enc_ppm_images_collection = db['enc_ppm_images']
 
 class UploadFileForm(FlaskForm):
     file = FileField("File")
@@ -445,12 +450,7 @@ def file_decrypt(user_id):
                                 user = user,
                                 received_user_files = received_user_files,
                                 received_file_list = received_file_list)
-    
-    
-def convert_to_ppm(input_image_stream, output_image_path):
-    """Converts an image (from an in-memory stream) to PPM format."""
-    img = Image.open(input_image_stream)
-    img.save(output_image_path, 'PPM')
+        
     
 @app.route('/profile/<user_id>/image-upload', methods=['GET', 'POST'])
 def img_upload(user_id):
@@ -461,8 +461,14 @@ def img_upload(user_id):
         user_images = images_collection.find({"user_id": user_id})
         images_list = [(image['_id'], image['image_name']) for image in images_collection.find({"user_id": user_id})]
         
+        ppm_user_images = ppm_images_collection.find({"user_id": user_id})
+        ppm_images_list = [(ppm_image['_id'], ppm_image['ppm_image_name']) for ppm_image in ppm_images_collection.find({"user_id": user_id})]
+        
         enc_user_images = enc_images_collection.find({"user_id": user_id})
         enc_images_list = [(image['_id'], image['encrypted_filename']) for image in enc_images_collection.find({"user_id": user_id})]
+        
+        ppm_enc_user_images = enc_ppm_images_collection.find({"user_id": user_id})
+        ppm_enc_images_list = [(ppm_image['_id'], ppm_image['encrypted_ppm_image_name']) for ppm_image in enc_ppm_images_collection.find({"user_id": user_id})]
         
         form = UploadFileForm()
         if form.validate_on_submit():
@@ -482,11 +488,9 @@ def img_upload(user_id):
                 # 
                 
                 img = cv2.imread(original_image_path)
-                ppm_filename = image_name +'.ppm'
-                ppm_path = os.path.join(app.config['IMAGE_FOLDER'], ppm_filename)
+                ppm_image_name = image_name +'.ppm'
+                ppm_path = os.path.join(app.config['PPM_IMAGE_FOLDER'], ppm_image_name)
                 cv2.imwrite(ppm_path, img, [cv2.IMWRITE_PXM_BINARY, 6])
-                
-                
                 
                 # 
                 # 
@@ -496,7 +500,12 @@ def img_upload(user_id):
                 
                 images_collection.insert_one({
                     "user_id": user_id,
-                    "image_name": ppm_filename
+                    "image_name": image_name,
+                })
+                
+                ppm_images_collection.insert_one({
+                    "user_id": user_id,
+                    "ppm_image_name": ppm_image_name,
                 })
                 return render_template('img-upload.html',
                                         user = user,
@@ -505,7 +514,10 @@ def img_upload(user_id):
                                         user_images=user_images,
                                         images_list = images_list,
                                         enc_user_images = enc_user_images,
-                                        enc_images_list =enc_images_list
+                                        enc_images_list =enc_images_list,
+                                        ppm_filename = ppm_image_name,
+                                        ppm_enc_user_images = ppm_enc_user_images,
+                                        ppm_enc_images_list = ppm_enc_images_list
                                         )    
             else:
                 flash('Invalid File Type')
@@ -516,7 +528,10 @@ def img_upload(user_id):
                                         user_images=user_images,
                                         images_list = images_list,
                                         enc_user_images = enc_user_images,
-                                        enc_images_list =enc_images_list
+                                        enc_images_list =enc_images_list,
+                                        ppm_filename = ppm_image_name,
+                                        ppm_enc_user_images = ppm_enc_user_images,
+                                        ppm_enc_images_list = ppm_enc_images_list
                                         )
         
         return render_template('img-upload.html',
@@ -525,7 +540,11 @@ def img_upload(user_id):
                                 user_images=user_images,
                                 images_list = images_list,
                                 enc_user_images = enc_user_images,
-                                enc_images_list =enc_images_list
+                                enc_images_list =enc_images_list,
+                                ppm_user_images = ppm_user_images,
+                                ppm_images_list =ppm_images_list,
+                                ppm_enc_user_images = ppm_enc_user_images,
+                                ppm_enc_images_list = ppm_enc_images_list
                                 )
             
 @app.route('/profile/<user_id>/image-encrypt', methods=['GET', 'POST'])
@@ -537,63 +556,118 @@ def image_encrypt(user_id):
         user_images = images_collection.find({"user_id": user_id})
         images_list = [(image['_id'], image['image_name']) for image in images_collection.find({"user_id": user_id})]
 
+        ppm_user_images = ppm_images_collection.find({"user_id": user_id})
+        ppm_images_list = [(ppm_image['_id'], ppm_image['ppm_image_name']) for ppm_image in ppm_images_collection.find({"user_id": user_id})]
+        
         if request.method == 'POST':
-            selected_image_id = request.form['selected_file']
-            image_to_encrypt = images_collection.find_one({'_id': ObjectId(selected_image_id)})
+            image_type = request.form['image_type']
             
-            if not image_to_encrypt:
-                flash("Selected image not found")
-                return redirect(url_for('image_encrypt', user_id=user_id))
+            if image_type == 'image':
+                selected_image_id = request.form['selected_file']
+                image_to_encrypt = images_collection.find_one({'_id': ObjectId(selected_image_id)})
             
-            input_image = os.path.join(app.config["IMAGE_FOLDER"], image_to_encrypt["image_name"])
+                input_image = os.path.join(app.config["IMAGE_FOLDER"], image_to_encrypt["image_name"])
+                
+                salt = user['aes_salt']
+                nonce = user['aes_nonce']
+                
+                aesKey = scrypt(user['password_hash'],
+                                salt=user['aes_salt'],
+                                key_len=32,
+                                N=2**20, # N=work factor, higher N increases resistance to brute-force attacks
+                                r=8, # r = block size parameter, influences the mount of memory required during key derivation
+                                p=1) # p = parallelization parameter, useful for running on multiple cores
+                
+                # Create a cipher object to encrypt data (will use this elsewhere for encrypting and decrypting)
+                cipher = AES.new(aesKey, AES.MODE_GCM, nonce=nonce)
             
-            salt = user['aes_salt']
-            nonce = user['aes_nonce']
+                # Construct output filename (assuming the original file directory organization needs to be preserved)
+                original_imagepath = image_to_encrypt["image_name"]
+                original_directory, original_imagename = os.path.split(original_imagepath)
+                _, original_extension = os.path.splitext(original_imagename)
+                output_imagename = original_imagename[:-len(original_extension)] + '_encrypted' + original_extension
             
-            aesKey = scrypt(user['password_hash'],
-                            salt=user['aes_salt'],
-                            key_len=32,
-                            N=2**20, # N=work factor, higher N increases resistance to brute-force attacks
-                            r=8, # r = block size parameter, influences the mount of memory required during key derivation
-                            p=1) # p = parallelization parameter, useful for running on multiple cores
+                # save encrypted image
+                encrypted_output_directory = os.path.join(app.config['ENC_IMAGE_FOLDER'], original_directory)
+                os.makedirs(encrypted_output_directory, exist_ok=True)
+                encrypted_output_path =os.path.join(encrypted_output_directory, output_imagename)
             
-            # Create a cipher object to encrypt data (will use this elsewhere for encrypting and decrypting)
-            cipher = AES.new(aesKey, AES.MODE_GCM, nonce=nonce)
             
-            # Construct output filename (assuming the original file directory organization needs to be preserved)
-            original_imagepath = image_to_encrypt["image_name"]
-            original_directory, original_imagename = os.path.split(original_imagepath)
-            _, original_extension = os.path.splitext(original_imagename)
-            output_imagename = original_imagename[:-len(original_extension)] + '_encrypted' + original_extension
+                output = aesImageEncryption(input_image, cipher, nonce, encrypted_output_path)
+                flash("Encryption success")
             
-            # save encrypted image
-            encrypted_output_directory = os.path.join(app.config['ENC_IMAGE_FOLDER'], original_directory)
-            os.makedirs(encrypted_output_directory, exist_ok=True)
-            encrypted_output_path =os.path.join(encrypted_output_directory, output_imagename)
+                enc_images_collection.insert_one({
+                    "user_id": user_id,
+                    "original_filename": image_to_encrypt["image_name"],  # Store original name
+                    "encrypted_filename": output_imagename,
+                    "encryption_key": aesKey,
+                    "salt": salt,
+                    "nonce": nonce,
+                })
             
-            output = aesImageEncryption(input_image, cipher, nonce, encrypted_output_path)
-            flash("Encryption success")
+            elif image_type == 'ppm_image':
+                selected_image_id = request.form['selected_file']
+                ppm_image_to_encrypt = ppm_images_collection.find_one({'_id': ObjectId(selected_image_id)})
             
-            enc_images_collection.insert_one({
+                ppm_input_image = os.path.join(app.config["PPM_IMAGE_FOLDER"], ppm_image_to_encrypt["ppm_image_name"])
+            
+                salt = user['aes_salt']
+                nonce = user['aes_nonce']
+                
+                aesKey = scrypt(user['password_hash'],
+                                salt=user['aes_salt'],
+                                key_len=32,
+                                N=2**20, # N=work factor, higher N increases resistance to brute-force attacks
+                                r=8, # r = block size parameter, influences the mount of memory required during key derivation
+                                p=1) # p = parallelization parameter, useful for running on multiple cores
+                
+                # Create a cipher object to encrypt data (will use this elsewhere for encrypting and decrypting)
+                cipher = AES.new(aesKey, AES.MODE_GCM, nonce=nonce)
+                
+                
+                # Construct output filename (assuming the original file directory organization needs to be preserved)
+                ppm_original_imagepath = ppm_image_to_encrypt["ppm_image_name"]
+                original_ppm_directory, original_ppm_imagename = os.path.split(ppm_original_imagepath)
+                _, original_ppm_extension = os.path.splitext(original_ppm_imagename)
+                output_ppm_imagename = original_ppm_imagename[:-len(original_ppm_extension)] + '_encrypted' + original_ppm_extension
+            
+                # save encrypted image
+                encrypted_ppm_output_directory = os.path.join(app.config['PPM_ENC_IMAGE_FOLDER'], original_ppm_directory)
+                os.makedirs(encrypted_ppm_output_directory, exist_ok=True)
+                encrypted_ppm_output_path =os.path.join(encrypted_ppm_output_directory, output_ppm_imagename)
+            
+                ppm_output = aesPPMImageEncryption(ppm_input_image, cipher, nonce, encrypted_ppm_output_path)
+                flash("Encryption success")
+                
+                enc_ppm_images_collection.insert_one({
                 "user_id": user_id,
-                "original_filename": image_to_encrypt["image_name"],  # Store original name
-                "encrypted_filename": output_imagename,
+                "original_ppm_filename": ppm_image_to_encrypt["ppm_image_name"],  # Store original name
+                "encrypted_ppm_image_name": output_ppm_imagename,
                 "encryption_key": aesKey,
                 "salt": salt,
                 "nonce": nonce,
-            })
+                })
+                
+            else:
+                flash("Selected image not found")
+                return redirect(url_for('image_encrypt', user_id=user_id))
+            
             flash("Storage success")
             
             return render_template('img-encrypt.html',
                                 user = user,
                                 user_images=user_images,
                                 images_list_list=images_list,
+                                ppm_user_images = ppm_user_images,
+                                ppm_images_list = ppm_images_list
                                 )
             
         return render_template('img-encrypt.html',
                                 user = user,
                                 user_images=user_images,
                                 images_list = images_list,
+                                ppm_user_images = ppm_user_images,
+                                ppm_images_list = ppm_images_list
                                 )
 
 @app.route('/profile/<user_id>/image-send', methods=['GET', 'POST'])
