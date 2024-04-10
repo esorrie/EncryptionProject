@@ -45,7 +45,7 @@
             <p>No files uploaded yet.</p>
         {% endif %}
         <br/>
-        Select an existing image to Encrypt!
+        Select an existing image to Encrypt and send in the future!
         <br />
         <form action="/profile/{{ user._id }}/image-encrypt" method="POST">
             <select name="selected_file" id="selected_file">
@@ -53,7 +53,37 @@
                     <option value="{{ image_id }}">{{ image_name }}</option>
                 {% endfor %}
             </select>
-            <button type="submit">Encrypt</button>
+            <input type="hidden" name="image_type" value="image"> <button type="submit">Encrypt</button>
+        </form>
+
+        {% if ppm_user_images %}  
+        <table>
+            <thead>
+                <tr>
+                    <th>Files</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ppm_image in ppm_user_images %}
+                    <tr>
+                        <td>{{ ppm_image.ppm_image_name }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p>No files uploaded yet.</p>
+        {% endif %}
+        <br/>
+        Select an existing image to Encrypt and visualise the Encryption!
+        <br />
+        <form action="/profile/{{ user._id }}/image-encrypt" method="POST">
+            <select name="selected_file" id="selected_file">
+                {% for image_id, ppm_image_name in ppm_images_list %}
+                    <option value="{{ image_id }}">{{ ppm_image_name }}</option>
+                {% endfor %}
+            </select>
+            <input type="hidden" name="image_type" value="ppm_image"> <button type="submit">Encrypt</button>
         </form>
         
     </html>
