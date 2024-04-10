@@ -1,6 +1,6 @@
 from json import dump
 import shutil
-from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, session, url_for, flash
 from pymongo import MongoClient
 from bson import ObjectId
 from flask_wtf import FlaskForm
@@ -17,7 +17,7 @@ from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 from Crypto.Protocol.KDF import scrypt
 import base64
-from base64 import b64encode, b64decode # For encoding encrypted data
+from base64 import b64decode # For encoding encrypted data
 import bcrypt # For password hashing
 
 from algorithms.aes256gcm.aesEncryption import aesFileEncryption, aesImageEncryption, aesPPMImageEncryption
@@ -98,7 +98,6 @@ def register():
             # Generating a random salt
             # A salt is random data that is used as an additional input to a one-way function that "hashes" data.
             salt = get_random_bytes(32) 
-            aesNonce = get_random_bytes(12)
             
             users_collection.insert_one({
                                         'username': username, 
@@ -107,7 +106,6 @@ def register():
                                         'private_Key': keyPrivate,
                                         'public_Key': keyPublic,
                                         'aes_salt': salt, # salt and nonce are stored over the aes key, so you can reconstruct the key when needed rather than storing the key
-                                        'aes_nonce': aesNonce,
                                         })
             return redirect(url_for('login')) # after register redirect to login page
     return render_template('register.html') 
@@ -234,8 +232,8 @@ def file_encrypt(user_id):
             input_file = os.path.join(app.config["UPLOAD_FOLDER"], file_to_encrypt["filename"])
             # File is selected, proceed with encryption
             salt = user['aes_salt']
-            nonce = user['aes_nonce']
-            # flash(nonce)
+            nonce = get_random_bytes(12)
+            
             # Generating the key using scrypt
             # Your key that you can encrypt with, 
             aesKey = scrypt(user['password_hash'],
@@ -244,12 +242,14 @@ def file_encrypt(user_id):
                             N=2**20, # N=work factor, higher N increases resistance to brute-force attacks
                             r=8, # r = block size parameter, influences the mount of memory required during key derivation
                             p=1) # p = parallelization parameter, useful for running on multiple cores
-            # flash('AES key generated')
-            # flash(len(aesKey))
-            # flash(aesKey)
+            flash('AES key generated')
+            flash(len(aesKey))
+            flash(aesKey)
+            
             # Create a cipher object to encrypt data (will use this elsewhere for encrypting and decrypting)
-            cipher = AES.new(aesKey, AES.MODE_GCM, nonce=user['aes_nonce'])
+            cipher = AES.new(aesKey, AES.MODE_GCM, nonce=nonce)
             # flash(cipher)
+            
             # Construct output filename (assuming the original file directory organization needs to be preserved)
             original_filepath = file_to_encrypt["filename"]
             original_directory, original_filename = os.path.split(original_filepath)  # Split into directory and filename
@@ -262,7 +262,7 @@ def file_encrypt(user_id):
             encrypted_output_path = os.path.join(encrypted_output_directory, output_filename)
         
             # Perform Encryption
-            output = aesFileEncryption(input_file, cipher, nonce, encrypted_output_path)
+            encrypted_output_path = aesFileEncryption(input_file, cipher, nonce, encrypted_output_path)
             flash("Encryption success")
             # flash(output)
 
@@ -343,7 +343,7 @@ def file_send(user_id):
             
             sent_files_collection.insert_one({
                 "user_id": user_id,
-                "encrypted_filename": file_to_send["encrypted_filename"],  # Store original name
+                "encrypted_filename": file_to_send["encrypted_filename"],  # Store encrypted file name
                 "sent_encrypted_filename_key": sent_output_filename_key,
                 "encryption_key": aesKey,
                 "rsa_keyPublic": keyPublic,
@@ -354,7 +354,7 @@ def file_send(user_id):
             received_files_collection.insert_one({
                 "recipient_id": recipient['_id'],
                 "recipient_username": recipient['username'],
-                "encrypted_filename": file_to_send["encrypted_filename"],  # Store original name
+                "encrypted_filename": file_to_send["encrypted_filename"],  # Store encrypted file name
                 "sent_encrypted_filename_key": sent_output_filename_key,
                 "encryption_key": aesKey,
                 "rsa_keyPublic": keyPublic,
@@ -417,8 +417,10 @@ def file_decrypt(user_id):
             # flash('AES Key')
             # flash(b64_aesKey)
             # flash(len(b64_aesKey))
+            
+            
             aesKey = b64decode(b64_aesKey)            
-            flash(aesKey)
+            # flash(aesKey)
             # flash(b64decode(b64_aesKey))
             # flash(len(b64decode(b64_aesKey)))
             
@@ -436,7 +438,7 @@ def file_decrypt(user_id):
             decrypted_output_directory = os.path.join(app.config['DECRYPT_FILE_FOLDER'], original_directory)
             os.makedirs(decrypted_output_directory, exist_ok=True)  # Create the directory if it doesn't exist
             decrypted_output_path = os.path.join(decrypted_output_directory, output_filename)
-
+            
             decrypted_text = aesFileDecryption(b64_decrypt_file, aesKey, decrypted_output_path)
             flash('decryption success')
             # flash(decrypted_text)
