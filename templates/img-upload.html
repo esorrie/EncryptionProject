@@ -31,11 +31,11 @@
             {{ form.submit }}
         </form>
         <br/>
-        {% if user_images %}  
+        {% if user_images%}  
         <table>
             <thead>
                 <tr>
-                    <th>Files</th>
+                    <th>Images</th>
                 </tr>
             </thead>
             <tbody>
@@ -49,13 +49,44 @@
         <table>
             <thead>
                 <tr>
-                    <th>Encrypted Files</th>
+                    <th>Encrypted Images</th>
                 </tr>
             </thead>
             <tbody>
                 {% for image in enc_user_images %}
                     <tr>
                         <td>{{ image.encrypted_filename }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+
+        {% if ppm_user_images%}  
+        <table>
+            <thead>
+                <tr>
+                    <th> PPM Images</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ppm_image in ppm_user_images %}
+                    <tr>
+                        <td>{{ ppm_image.ppm_image_name }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <table>
+            <thead>
+                <tr>
+                    <th>Encrypted PPM Images</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ppm_image in ppm_enc_user_images %}
+                    <tr>
+                        <td>{{ image.encrypted_ppm_image_name }}</td>
                     </tr>
                 {% endfor %}
             </tbody>
