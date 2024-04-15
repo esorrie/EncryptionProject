@@ -60,16 +60,12 @@ def aesImageDecryption(b64_decrypt_image, aesKey, decrypted_output_path):
         with open(decrypted_output_path, 'wb') as file_out:
             
             with open(b64_decrypt_image, 'rb') as file_content:
-                # reading the nonce from the beginning of the file
+
                 nonce = file_content.read(12)
-                # flash('nonce')
-                # flash(nonce)
+
                 
                 cipher = AES.new(aesKey, AES.MODE_GCM, nonce=nonce)
-                # flash('cipher')
-                # flash(cipher)
-                
-                # Get the authentication tag
+
                 file_content.seek(-16,2)
                 tag = file_content.read(16)
                 
@@ -82,10 +78,9 @@ def aesImageDecryption(b64_decrypt_image, aesKey, decrypted_output_path):
                     decrypted_data = cipher.decrypt(encrypted_data)
                     file_out.write(decrypted_data)
                     b64_encrypted_data = file_content.read(BUFFER_SIZE)
-                    # flash("decrypted data")
-                    # flash(decrypted_data)
 
-                cipher.verify(tag) # checks tag before decryption 
+
+                cipher.verify(tag)
             file_out.close()
 
     return decrypted_output_path

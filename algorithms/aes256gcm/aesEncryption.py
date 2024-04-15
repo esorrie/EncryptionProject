@@ -34,29 +34,24 @@ def aesFileEncryption(input_file, cipher, nonce, encrypted_output_path):
         return encrypted_output_path 
     
 def aesImageEncryption(input_image, cipher, nonce, encrypted_output_path):
-    BUFFER_SIZE = 1024 * 1024 # The size in bytes that we read, encrypt and write to at once
+    BUFFER_SIZE = 1024 * 1024
     
     if input_image:
         with open(encrypted_output_path, 'wb') as file_out: 
             print("Starting encryption process")
-            file_out.write(nonce)  # Write out the nonce to the top of the output file
+            file_out.write(nonce) 
             
-            # User selected a file, open and read its contents
             with open(input_image, 'rb') as file_content:
-                data = file_content.read(BUFFER_SIZE)  # Read in some of the file
-                while len(data) != 0:  # Check if we need to encrypt any more data
-                    encrypted_data = cipher.encrypt(data)  # Encrypt the data we read
+                data = file_content.read(BUFFER_SIZE) 
+                while len(data) != 0: 
+                    encrypted_data = cipher.encrypt(data) 
                     b64_encrypted_data = b64encode(encrypted_data)
-                    file_out.write(b64_encrypted_data)  # Write the encrypted data to the output file
-                    data = file_content.read(BUFFER_SIZE)  # Read some more of the file to see if there is any more left
+                    file_out.write(b64_encrypted_data) 
+                    data = file_content.read(BUFFER_SIZE) 
 
-                # Get and write the tag for decryption verification
-                tag = cipher.digest()  # Signal to the cipher that we are done and get the tag
+                tag = cipher.digest() 
                 file_out.write(tag)
-                # flash('tag')
-                # flash(tag)
 
-                # Close out file
                 file_out.close()
                 
         return encrypted_output_path 
@@ -68,7 +63,7 @@ def aesImageEncryption(input_image, cipher, nonce, encrypted_output_path):
 # 
 
 def aesPPMImageEncryption(ppm_input_image, cipher, nonce, encrypted_ppm_output_path):
-    BUFFER_SIZE = 1024 * 1024 # The size in bytes that we read, encrypt and write to at once
+    BUFFER_SIZE = 1024 * 1024 
     
     if ppm_input_image:
         with open(ppm_input_image, 'rb') as f:
@@ -77,22 +72,19 @@ def aesPPMImageEncryption(ppm_input_image, cipher, nonce, encrypted_ppm_output_p
         with open(encrypted_ppm_output_path, 'wb') as file_out: 
             
             for line in header_lines:
-                file_out.write(line)  # Encode each line
+                file_out.write(line) 
             
-            # User selected a file, open and read its contents
             with open(ppm_input_image, 'rb') as file_content:
-                data = file_content.read(BUFFER_SIZE)  # Read in some of the file
+                data = file_content.read(BUFFER_SIZE) 
                 
-                while len(data) != 0:  # Check if we need to encrypt any more data
-                    encrypted_data = cipher.encrypt(data)  # Encrypt the data we read
+                while len(data) != 0: 
+                    encrypted_data = cipher.encrypt(data) 
                     b64_encrypted_data = b64encode(encrypted_data)
-                    file_out.write(b64_encrypted_data)  # Write the encrypted data to the output file
-                    data = file_content.read(BUFFER_SIZE)  # Read some more of the file to see if there is any more left
+                    file_out.write(b64_encrypted_data)  
+                    data = file_content.read(BUFFER_SIZE)  
 
-                # Get and write the tag for decryption verification
-                tag = cipher.digest()  # Signal to the cipher that we are done and get the tag
-
-                # Close out file
+                tag = cipher.digest()
+                
                 file_out.close()
                 
         return encrypted_ppm_output_path 
