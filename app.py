@@ -25,7 +25,7 @@ from algorithms.aes256gcm.aesDecryption import aesFileDecryption, aesImageDecryp
 from algorithms.rsaProcess.rsaEncryption import rsaEncryption
 from algorithms.rsaProcess.rsaDecryption import rsaDecryption
 
-## TODO : convert any image selected for encryption to .ppm, remove the image header, then grayscale the .ppm image, encrypt image data then add image header back into file
+## TODO : implement grey scale to see how the algorithm in effected
 
 app = Flask(__name__)
 app.secret_key = "2tc)(h@|HWT4=+8<:ZiUs;(fvd|8;u"
@@ -105,7 +105,7 @@ def register():
                                         'password_hash': passwordHash, # storing hash over raw password
                                         'private_Key': keyPrivate,
                                         'public_Key': keyPublic,
-                                        'aes_salt': salt, # salt and nonce are stored over the aes key, so you can reconstruct the key when needed rather than storing the key
+                                        'aes_salt': salt, # salt are stored over the aes key, so you can reconstruct the key when needed rather than storing the key
                                         })
             return redirect(url_for('login')) # after register redirect to login page
     return render_template('register.html') 
@@ -264,7 +264,7 @@ def file_encrypt(user_id):
             # Perform Encryption
             encrypted_output_path = aesFileEncryption(input_file, cipher, nonce, encrypted_output_path)
             flash("Encryption success")
-            # flash(output)
+            # flash(aesKey)
 
             # 
             #
