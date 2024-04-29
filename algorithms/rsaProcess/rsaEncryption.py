@@ -1,10 +1,12 @@
 # Encrypting the AES key with RSA
-
 import base64
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from cryptography.hazmat.primitives.asymmetric import padding
 
+from flask import flash
+import psutil
+import time
 
 #######
 # Here we encrypt the aes key with the recipient public key 
@@ -12,6 +14,32 @@ from cryptography.hazmat.primitives.asymmetric import padding
 # keyPublic = recipient user public key
 # aesKey = encryption key used to encrypted sent file data
 #######
+
+def profile_function(func):
+
+    def wrapper(*args, **kwargs):
+        process = psutil.Process()
+        
+        start_time = time.time()
+        start_cpu = process.cpu_percent(interval=None)
+        start_mem = process.memory_info().rss
+        
+        result = func(*args, **kwargs)
+        
+        end_time = time.time()
+        end_cpu = process.cpu_percent(interval=end_time - start_time)
+        end_mem = process.memory_info().rss 
+
+        execution_time = end_time - start_time
+        cpu_time = end_cpu - start_cpu 
+        mem_usage = (end_mem - start_mem) / (1024 * 1024)
+        
+        flash(f"Function '{func.__name__}' Memory Usage: {mem_usage:.4f} MB") 
+        flash(f"Execution Time: {execution_time:.4f} seconds")
+        return result
+    return wrapper
+
+@profile_function
 def rsaEncryption(keyPublic, aesKey):
     
     # Load the public key

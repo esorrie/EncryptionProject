@@ -2,7 +2,44 @@
 from base64 import b64encode, b64decode
 import base64
 from flask import flash
+import psutil
+import time
+import math
 
+
+def profile_function(func):
+
+    def wrapper(*args, **kwargs):
+        process = psutil.Process()
+        
+        start_time = time.time()
+        start_cpu = process.cpu_percent(interval=None)
+        start_mem = process.memory_info().rss
+        
+        result = func(*args, **kwargs)
+        
+        end_time = time.time()
+        end_cpu = process.cpu_percent(interval=end_time - start_time)
+        end_mem = process.memory_info().rss 
+
+        execution_time = end_time - start_time
+        cpu_time = end_cpu - start_cpu 
+        mem_usage = (end_mem - start_mem) / (1024 * 1024)
+        
+        flash(f"Function '{func.__name__}' Memory Usage: {mem_usage:.4f} MB") 
+        flash(f"Execution Time: {execution_time:.4f} seconds")
+        return result
+    return wrapper
+
+def calculate_entropy(data):
+    """Calculates Shannon entropy of a byte string."""
+    counts = [data.count(x) for x in range(256)]  # Count occurrences of each byte value
+    total = len(data)
+    probabilities = [count / total for count in counts if count > 0]  
+    entropy = -sum(p * math.log2(p) for p in probabilities)
+    return entropy
+
+@profile_function
 def aesFileEncryption(input_file, cipher, nonce, encrypted_output_path):
     BUFFER_SIZE = 1024 * 1024 # The size in bytes that we read, encrypt and write to at once
     
@@ -25,14 +62,14 @@ def aesFileEncryption(input_file, cipher, nonce, encrypted_output_path):
                 # Get and write the tag for decryption verification
                 tag = cipher.digest()  # Signal to the cipher that we are done and get the tag
                 file_out.write(tag)
-                # flash('tag')
-                # flash(tag)
+
 
                 # Close out file
                 file_out.close()
                 
         return encrypted_output_path 
     
+@profile_function
 def aesImageEncryption(input_image, cipher, nonce, encrypted_output_path):
     BUFFER_SIZE = 1024 * 1024
     
@@ -61,7 +98,7 @@ def aesImageEncryption(input_image, cipher, nonce, encrypted_output_path):
 # METHOD WITH REMOVING THE IMAGE HEADER BEFORE ENCRYPTION 
 # 
 # 
-
+@profile_function
 def aesPPMImageEncryption(ppm_input_image, cipher, nonce, encrypted_ppm_output_path):
     BUFFER_SIZE = 1024 * 1024 
     
