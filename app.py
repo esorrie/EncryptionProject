@@ -217,7 +217,7 @@ def file_encrypt(user_id):
             selected_file_id = request.form['selected_file']
             file_to_encrypt = files_collection.find_one({'_id': ObjectId(selected_file_id)})
 
-            # Check if file exists (optional)
+            # Check if file exists
             if not file_to_encrypt:
                 flash("Selected file not found")
                 return redirect(url_for('file_encrypt', user_id=user_id))
@@ -228,7 +228,7 @@ def file_encrypt(user_id):
             # 
             # 
             
-            # Retrieve absolute file path (assuming files are in 'static/files')
+            # Retrieve absolute file path
             input_file = os.path.join(app.config["UPLOAD_FOLDER"], file_to_encrypt["filename"])
             # File is selected, proceed with encryption
             salt = user['aes_salt']
@@ -274,7 +274,7 @@ def file_encrypt(user_id):
             
             enc_files_collection.insert_one({
                 "user_id": user_id,
-                "original_filename": file_to_encrypt["filename"],  # Store original name
+                "original_filename": file_to_encrypt["filename"], 
                 "encrypted_filename": output_filename,
                 "encryption_key": aesKey,
                 "salt": salt,
@@ -318,7 +318,7 @@ def file_send(user_id):
             # flash("aes key")
             # flash(aesKey) # when called from database auto b64 decoded
             
-            # Check if file exists (optional)
+            
             if not file_to_send and recipient:
                 flash("Selected file not found")
                 return redirect(url_for('file_encrypt', user_id=user_id))
@@ -335,7 +335,7 @@ def file_send(user_id):
             
             # save sent encrypted file 
             sent_encrypted_output_directory = os.path.join(app.config['ENC_KEY_SENT_FOLDER'], encrypted_directory)
-            os.makedirs(sent_encrypted_output_directory, exist_ok=True)  # Create the directory if it doesn't exist
+            os.makedirs(sent_encrypted_output_directory, exist_ok=True)  
             sent_key_output_path = os.path.join(sent_encrypted_output_directory, sent_output_filename_key)
         
             with open(sent_key_output_path, 'wb') as f:
@@ -343,22 +343,22 @@ def file_send(user_id):
             
             sent_files_collection.insert_one({
                 "user_id": user_id,
-                "encrypted_filename": file_to_send["encrypted_filename"],  # Store encrypted file name
+                "encrypted_filename": file_to_send["encrypted_filename"], 
                 "sent_encrypted_filename_key": sent_output_filename_key,
                 "encryption_key": aesKey,
                 "rsa_keyPublic": keyPublic,
-                "encrypted_aesKey": send_output,  # to confirm key in file was correct
+                "encrypted_aesKey": send_output,  
             })
             flash("Storage success")
             
             received_files_collection.insert_one({
                 "recipient_id": recipient['_id'],
                 "recipient_username": recipient['username'],
-                "encrypted_filename": file_to_send["encrypted_filename"],  # Store encrypted file name
+                "encrypted_filename": file_to_send["encrypted_filename"], 
                 "sent_encrypted_filename_key": sent_output_filename_key,
                 "encryption_key": aesKey,
                 "rsa_keyPublic": keyPublic,
-                "encrypted_aesKey": send_output, # to confirm key in file was correct
+                "encrypted_aesKey": send_output,
             })
             
             return render_template('file-send.html',
@@ -393,7 +393,7 @@ def file_decrypt(user_id):
             file_to_decrypt = received_files_collection.find_one({'_id': ObjectId(selected_received_file_id)})
             # flash(file_to_decrypt)
             
-            # Check if file exists (optional)
+            
             if not file_to_decrypt:
                 flash("Selected file not found")
                 return redirect(url_for('file_decrypt', user_id=user_id))
@@ -408,7 +408,7 @@ def file_decrypt(user_id):
             # flash('Private Key')
             # flash(len(keyPrivate))
             # flash(keyPrivate)
-            # # Retrieve absolute file path (assuming files are in 'static/files')
+            
             decrypt_key = file_to_decrypt['encrypted_aesKey']
             # flash('Encrypted aes Key')
             # flash(decrypt_key)
@@ -428,15 +428,15 @@ def file_decrypt(user_id):
             # flash('decrypt file')
             # flash(b64_decrypt_file)
 
-            # Construct output filename (assuming the original file directory organization needs to be preserved)
+        
             original_filepath = file_to_decrypt["encrypted_filename"]
-            original_directory, original_filename = os.path.split(original_filepath)  # Split into directory and filename
+            original_directory, original_filename = os.path.split(original_filepath)
             base_filename = original_filename.replace("_encrypted", "")
             output_filename = base_filename
             
-            # # save decrypted file 
+
             decrypted_output_directory = os.path.join(app.config['DECRYPT_FILE_FOLDER'], original_directory)
-            os.makedirs(decrypted_output_directory, exist_ok=True)  # Create the directory if it doesn't exist
+            os.makedirs(decrypted_output_directory, exist_ok=True) 
             decrypted_output_path = os.path.join(decrypted_output_directory, output_filename)
             
             decrypted_text = aesFileDecryption(b64_decrypt_file, aesKey, decrypted_output_path)
@@ -576,20 +576,20 @@ def image_encrypt(user_id):
                 aesKey = scrypt(user['password_hash'],
                                 salt=user['aes_salt'],
                                 key_len=32,
-                                N=2**20, # N=work factor, higher N increases resistance to brute-force attacks
-                                r=8, # r = block size parameter, influences the mount of memory required during key derivation
-                                p=1) # p = parallelization parameter, useful for running on multiple cores
+                                N=2**20, 
+                                r=8, 
+                                p=1)
                 
                 # Create a cipher object to encrypt data (will use this elsewhere for encrypting and decrypting)
                 cipher = AES.new(aesKey, AES.MODE_GCM, nonce=nonce)
             
-                # Construct output filename (assuming the original file directory organization needs to be preserved)
+                
                 original_imagepath = image_to_encrypt["image_name"]
                 original_directory, original_imagename = os.path.split(original_imagepath)
                 _, original_extension = os.path.splitext(original_imagename)
                 output_imagename = original_imagename[:-len(original_extension)] + '_encrypted' + original_extension
             
-                # save encrypted image
+                
                 encrypted_output_directory = os.path.join(app.config['ENC_IMAGE_FOLDER'], original_directory)
                 os.makedirs(encrypted_output_directory, exist_ok=True)
                 encrypted_output_path =os.path.join(encrypted_output_directory, output_imagename)
@@ -600,7 +600,7 @@ def image_encrypt(user_id):
             
                 enc_images_collection.insert_one({
                     "user_id": user_id,
-                    "original_filename": image_to_encrypt["image_name"],  # Store original name
+                    "original_filename": image_to_encrypt["image_name"], 
                     "encrypted_filename": output_imagename,
                     "encryption_key": aesKey,
                     "salt": salt,
@@ -619,21 +619,21 @@ def image_encrypt(user_id):
                 aesKey = scrypt(user['password_hash'],
                                 salt=user['aes_salt'],
                                 key_len=32,
-                                N=2**20, # N=work factor, higher N increases resistance to brute-force attacks
-                                r=8, # r = block size parameter, influences the mount of memory required during key derivation
-                                p=1) # p = parallelization parameter, useful for running on multiple cores
+                                N=2**20, 
+                                r=8,
+                                p=1) 
                 
-                # Create a cipher object to encrypt data (will use this elsewhere for encrypting and decrypting)
+                
                 cipher = AES.new(aesKey, AES.MODE_GCM, nonce=nonce)
                 
                 
-                # Construct output filename (assuming the original file directory organization needs to be preserved)
+                
                 ppm_original_imagepath = ppm_image_to_encrypt["ppm_image_name"]
                 original_ppm_directory, original_ppm_imagename = os.path.split(ppm_original_imagepath)
                 _, original_ppm_extension = os.path.splitext(original_ppm_imagename)
                 output_ppm_imagename = original_ppm_imagename[:-len(original_ppm_extension)] + '_encrypted' + original_ppm_extension
             
-                # save encrypted image
+                
                 encrypted_ppm_output_directory = os.path.join(app.config['PPM_ENC_IMAGE_FOLDER'], original_ppm_directory)
                 os.makedirs(encrypted_ppm_output_directory, exist_ok=True)
                 encrypted_ppm_output_path =os.path.join(encrypted_ppm_output_directory, output_ppm_imagename)
@@ -643,7 +643,7 @@ def image_encrypt(user_id):
                 
                 enc_ppm_images_collection.insert_one({
                 "user_id": user_id,
-                "original_ppm_filename": ppm_image_to_encrypt["ppm_image_name"],  # Store original name
+                "original_ppm_filename": ppm_image_to_encrypt["ppm_image_name"],
                 "encrypted_ppm_image_name": output_ppm_imagename,
                 "encryption_key": aesKey,
                 "salt": salt,
@@ -694,22 +694,22 @@ def image_send(user_id):
             keyPublic = recipient['public_Key']
             aesKey = image_to_send['encryption_key']
             
-            # Check if file exists (optional)
+            
             if not image_to_send and recipient:
                 flash("Selected file not found")
                 return redirect(url_for('file_encrypt', user_id=user_id))
             
-            # Construct output filename (assuming the original file directory organization needs to be preserved)
+            
             encrypted_filepath = image_to_send["encrypted_filename"]
-            encrypted_directory, encrypted_imagename = os.path.split(encrypted_filepath)  # Split into directory and filename
+            encrypted_directory, encrypted_imagename = os.path.split(encrypted_filepath)  
             _, encrypted_extension = os.path.splitext(encrypted_imagename)
             sent_output_imagename_key = encrypted_imagename[:-len(encrypted_extension)] + '_key' + encrypted_extension
             
             send_output = rsaEncryption(keyPublic, aesKey)
             
-            # save sent encrypted file 
+            
             sent_encrypted_output_directory = os.path.join(app.config['ENC_KEY_SENT_IMAGE'], encrypted_directory)
-            os.makedirs(sent_encrypted_output_directory, exist_ok=True)  # Create the directory if it doesn't exist
+            os.makedirs(sent_encrypted_output_directory, exist_ok=True)  
             sent_key_output_path = os.path.join(sent_encrypted_output_directory, sent_output_imagename_key)
         
             with open(sent_key_output_path, 'wb') as f:
@@ -717,22 +717,22 @@ def image_send(user_id):
                 
             sent_images_collection.insert_one({
                 "user_id": user_id,
-                "encrypted_filename": image_to_send["encrypted_filename"],  # Store original name
+                "encrypted_filename": image_to_send["encrypted_filename"],
                 "sent_encrypted_filename_key": sent_output_imagename_key,
                 "encryption_key": aesKey,
                 "rsa_keyPublic": keyPublic,
-                "encrypted_aesKey": send_output,  # to confirm key in file was correct
+                "encrypted_aesKey": send_output,
             })
             flash("Storage success")
         
             received_images_collection.insert_one({
                 "recipient_id": recipient['_id'],
                 "recipient_username": recipient['username'],
-                "encrypted_filename": image_to_send["encrypted_filename"],  # Store original name
+                "encrypted_filename": image_to_send["encrypted_filename"],
                 "sent_encrypted_filename_key": sent_output_imagename_key,
                 "encryption_key": aesKey,
                 "rsa_keyPublic": keyPublic,
-                "encrypted_aesKey": send_output, # to confirm key in file was correct
+                "encrypted_aesKey": send_output,
             })
             
             return render_template('img-send.html',
@@ -766,7 +766,7 @@ def image_decrypt(user_id):
             image_to_decrypt = received_images_collection.find_one({'_id': ObjectId(selected_received_image_id)})
             # flash(file_to_decrypt)
             
-            # Check if file exists (optional)
+            
             if not image_to_decrypt:
                 flash("Selected image not found")
                 return redirect(url_for('image_decrypt', user_id=user_id))
@@ -781,7 +781,7 @@ def image_decrypt(user_id):
             # flash('Private Key')
             # flash(len(keyPrivate))
             # flash(keyPrivate)
-            # # Retrieve absolute file path (assuming files are in 'static/files')
+            
             decrypt_key = image_to_decrypt['encrypted_aesKey']
             # flash('Encrypted aes Key')
             # flash(decrypt_key)
@@ -799,15 +799,15 @@ def image_decrypt(user_id):
             # flash('decrypt file')
             # flash(b64_decrypt_file)
 
-            # Construct output filename (assuming the original file directory organization needs to be preserved)
+            
             original_filepath = image_to_decrypt["encrypted_filename"]
-            original_directory, original_imagename = os.path.split(original_filepath)  # Split into directory and filename
+            original_directory, original_imagename = os.path.split(original_filepath)
             base_filename = original_imagename.replace("_encrypted", "")
             output_filename = base_filename
             
-            # # save decrypted file 
+
             decrypted_output_directory = os.path.join(app.config['DECRYPT_IMAGE_FOLDER'], original_directory)
-            os.makedirs(decrypted_output_directory, exist_ok=True)  # Create the directory if it doesn't exist
+            os.makedirs(decrypted_output_directory, exist_ok=True)
             decrypted_output_path = os.path.join(decrypted_output_directory, output_filename)
 
             decrypted_text = aesImageDecryption(b64_decrypt_image, aesKey, decrypted_output_path)

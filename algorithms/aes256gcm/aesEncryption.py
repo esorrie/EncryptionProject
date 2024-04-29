@@ -51,7 +51,7 @@ def aesFileEncryption(input_file, cipher, nonce, encrypted_output_path):
             # User selected a file, open and read its contents
             with open(input_file, 'rb') as file_content:
                 data = file_content.read(BUFFER_SIZE)  # Read in some of the file
-                while len(data) != 0:  # Check if we need to encrypt any more data
+                while len(data) != 0: 
                     encrypted_data = cipher.encrypt(data)  # Encrypt the data we read
                     b64_encrypted_data = b64encode(encrypted_data)
                     file_out.write(b64_encrypted_data)  # Write the encrypted data to the output file
