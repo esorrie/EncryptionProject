@@ -8,3 +8,4 @@ rsa >= 0.0.0
 cryptography >= 0.0.0
 Pillow >= 0.0.0
 opencv-python == 4.5.3.56
+psutil >= 0.0.0
