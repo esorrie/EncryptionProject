@@ -4,7 +4,8 @@ import base64
 from flask import flash
 import psutil
 import time
-import math
+import math 
+from math import log2
 
 
 def profile_function(func):
@@ -31,12 +32,25 @@ def profile_function(func):
         return result
     return wrapper
 
-def calculate_entropy(data):
-    """Calculates Shannon entropy of a byte string."""
-    counts = [data.count(x) for x in range(256)]  # Count occurrences of each byte value
-    total = len(data)
-    probabilities = [count / total for count in counts if count > 0]  
-    entropy = -sum(p * math.log2(p) for p in probabilities)
+def calculate_shannon_entropy(encrypted_file_path):
+    # Read the encrypted file
+    with open(encrypted_file_path, 'rb') as f:
+        encrypted_data = f.read()
+
+    # Count the frequency of each byte value
+    byte_counts = [0] * 256
+    for byte in encrypted_data:
+        byte_counts[byte] += 1
+
+    total_bytes = len(encrypted_data)
+
+    # Calculate the Shannon entropy
+    entropy = 0
+    for count in byte_counts:
+        if count > 0:
+            p = count / total_bytes
+            entropy -= p * log2(p)
+
     return entropy
 
 @profile_function
@@ -63,8 +77,8 @@ def aesFileEncryption(input_file, cipher, nonce, encrypted_output_path):
 
                 # Close out file
                 file_out.close()
-                
-            
+            entropy = calculate_shannon_entropy(encrypted_output_path)
+            flash(f"Entropy: {entropy:.4f}")
         return encrypted_output_path 
     
 @profile_function
@@ -73,7 +87,7 @@ def aesImageEncryption(input_image, cipher, nonce, encrypted_output_path):
     
     if input_image:
         with open(encrypted_output_path, 'wb') as file_out: 
-            print("Starting encryption process")
+            # print("Starting encryption process")
             file_out.write(nonce) 
             
             with open(input_image, 'rb') as file_content:
@@ -88,7 +102,8 @@ def aesImageEncryption(input_image, cipher, nonce, encrypted_output_path):
                 file_out.write(tag)
 
                 file_out.close()
-                
+            entropy = calculate_shannon_entropy(encrypted_output_path)
+            flash(f"Entropy: {entropy:.4f}")
         return encrypted_output_path 
 
 # 
