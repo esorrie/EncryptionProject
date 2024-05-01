@@ -3,6 +3,8 @@ import base64
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from cryptography.hazmat.primitives.asymmetric import padding
+import math
+from math import log2
 
 from flask import flash
 import psutil
@@ -39,27 +41,6 @@ def profile_function(func):
         return result
     return wrapper
 
-def calculate_shannon_entropy(encrypted_file_path):
-    # Read the encrypted file
-    with open(encrypted_file_path, 'rb') as f:
-        encrypted_data = f.read()
-
-    # Count the frequency of each byte value
-    byte_counts = [0] * 256
-    for byte in encrypted_data:
-        byte_counts[byte] += 1
-
-    total_bytes = len(encrypted_data)
-
-    # Calculate the Shannon entropy
-    entropy = 0
-    for count in byte_counts:
-        if count > 0:
-            p = count / total_bytes
-            entropy -= p * log2(p)
-
-    return entropy
-
 @profile_function
 def rsaEncryption(keyPublic, aesKey):
     
@@ -75,9 +56,6 @@ def rsaEncryption(keyPublic, aesKey):
             label=None
         ) # adding padding to the aesKey and then encrypting with the RSA public key
     ) # OAEP adds extra protection to the aes key 
-    
-    entropy = calculate_shannon_entropy(enc_aesKey)
-    flash(f"Entropy: {entropy:.4f}")
     
     # converting enc_aesKey to b64 for transferring 
     b64_enc_aesKey = base64.b64encode(enc_aesKey)

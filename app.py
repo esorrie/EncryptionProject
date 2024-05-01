@@ -22,7 +22,7 @@ import bcrypt # For password hashing
 
 from algorithms.aes256gcm.aesEncryption import aesFileEncryption, aesImageEncryption, aesPPMImageEncryption
 from algorithms.aes256gcm.aesDecryption import aesFileDecryption, aesImageDecryption
-from algorithms.rsaProcess.rsaEncryption import rsaEncryption
+from algorithms.rsaProcess.rsaEncryption import rsaEncryption, calculate_shannon_entropy
 from algorithms.rsaProcess.rsaDecryption import rsaDecryption
 
 ## TODO : implement grey scale to see how the algorithm in effected
