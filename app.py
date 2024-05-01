@@ -242,9 +242,9 @@ def file_encrypt(user_id):
                             N=2**20, # N=work factor, higher N increases resistance to brute-force attacks
                             r=8, # r = block size parameter, influences the mount of memory required during key derivation
                             p=1) # p = parallelization parameter, useful for running on multiple cores
-            flash('AES key generated')
-            flash(len(aesKey))
-            flash(aesKey)
+            # flash('AES key generated')
+            # flash(len(aesKey))
+            # flash(aesKey)
             
             # Create a cipher object to encrypt data (will use this elsewhere for encrypting and decrypting)
             cipher = AES.new(aesKey, AES.MODE_GCM, nonce=nonce)
@@ -791,7 +791,7 @@ def image_decrypt(user_id):
             # flash(b64_aesKey)
             # flash(len(b64_aesKey))
             aesKey = b64decode(b64_aesKey)            
-            flash(aesKey)
+            # flash(aesKey)
             # flash(b64decode(b64_aesKey))
             # flash(len(b64decode(b64_aesKey)))
             

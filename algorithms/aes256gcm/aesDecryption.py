@@ -40,18 +40,18 @@ def aesFileDecryption(decrypt_file, aesKey, decrypted_output_path):
             with open(decrypt_file, 'rb') as file_content:
                 # reading the nonce from the beginning of the file
                 nonce = file_content.read(12)
-                
                 cipher = AES.new(aesKey, AES.MODE_GCM, nonce=nonce)
                 
-                encrypted_data = file_content.read(BUFFER_SIZE)
+                encrypted_data = file_content.read()
+                tag = encrypted_data[-16:]
+                encrypted_data = encrypted_data[:-16]
                 
                 while len(encrypted_data) != 0:
                     decrypted_data = cipher.decrypt(encrypted_data)
                     file_out.write(decrypted_data)
                     encrypted_data = file_content.read(BUFFER_SIZE)
                 
-                tag = file_content.read(16)
-                # flash(tag)
+                flash(tag)
                 try:
                     cipher.verify(tag)
                 except ValueError:
@@ -71,15 +71,17 @@ def aesImageDecryption(decrypt_image, aesKey, decrypted_output_path):
             with open(decrypt_image, 'rb') as file_content:
                 nonce = file_content.read(12)
                 cipher = AES.new(aesKey, AES.MODE_GCM, nonce=nonce)
-
-                encrypted_data = file_content.read(BUFFER_SIZE)
+                
+                encrypted_data = file_content.read()
+                tag = encrypted_data[-16:]
+                encrypted_data = encrypted_data[:-16]
                 
                 while len(encrypted_data) != 0:
                     decrypted_data = cipher.decrypt(encrypted_data)
                     file_out.write(decrypted_data)
                     encrypted_data = file_content.read(BUFFER_SIZE)
-
-                tag = file_content.read(16)
+                
+                flash(tag)
                 try:
                     cipher.verify(tag)
                 except ValueError:
