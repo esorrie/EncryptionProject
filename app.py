@@ -424,7 +424,7 @@ def file_decrypt(user_id):
             # flash(b64decode(b64_aesKey))
             # flash(len(b64decode(b64_aesKey)))
             
-            b64_decrypt_file = os.path.join(app.config["ENC_UPLOAD_FOLDER"], file_to_decrypt["encrypted_filename"])
+            decrypt_file = os.path.join(app.config["ENC_UPLOAD_FOLDER"], file_to_decrypt["encrypted_filename"])
             # flash('decrypt file')
             # flash(b64_decrypt_file)
 
@@ -439,7 +439,7 @@ def file_decrypt(user_id):
             os.makedirs(decrypted_output_directory, exist_ok=True) 
             decrypted_output_path = os.path.join(decrypted_output_directory, output_filename)
             
-            decrypted_text = aesFileDecryption(b64_decrypt_file, aesKey, decrypted_output_path)
+            decrypted_text = aesFileDecryption(decrypt_file, aesKey, decrypted_output_path)
             flash('decryption success')
             # flash(decrypted_text)
             
@@ -795,7 +795,7 @@ def image_decrypt(user_id):
             # flash(b64decode(b64_aesKey))
             # flash(len(b64decode(b64_aesKey)))
             
-            b64_decrypt_image = os.path.join(app.config["ENC_IMAGE_FOLDER"], image_to_decrypt["encrypted_filename"])
+            decrypt_image = os.path.join(app.config["ENC_IMAGE_FOLDER"], image_to_decrypt["encrypted_filename"])
             # flash('decrypt file')
             # flash(b64_decrypt_file)
 
@@ -810,7 +810,7 @@ def image_decrypt(user_id):
             os.makedirs(decrypted_output_directory, exist_ok=True)
             decrypted_output_path = os.path.join(decrypted_output_directory, output_filename)
 
-            decrypted_text = aesImageDecryption(b64_decrypt_image, aesKey, decrypted_output_path)
+            decrypted_text = aesImageDecryption(decrypt_image, aesKey, decrypted_output_path)
             flash('decryption success')
             # flash(decrypted_text)
             

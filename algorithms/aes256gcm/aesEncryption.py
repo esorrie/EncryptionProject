@@ -26,8 +26,8 @@ def profile_function(func):
         cpu_time = end_cpu - start_cpu 
         mem_usage = (end_mem - start_mem) / (1024 * 1024)
         
-        flash(f"Function '{func.__name__}' Memory Usage: {mem_usage:.4f} MB") 
-        flash(f"Execution Time: {execution_time:.4f} seconds")
+        # flash(f"Function '{func.__name__}' Memory Usage: {mem_usage:.4f} MB") 
+        # flash(f"Execution Time: {execution_time:.4f} seconds")
         return result
     return wrapper
 
@@ -53,20 +53,19 @@ def aesFileEncryption(input_file, cipher, nonce, encrypted_output_path):
                 data = file_content.read(BUFFER_SIZE)  # Read in some of the file
                 while len(data) != 0: 
                     encrypted_data = cipher.encrypt(data)  # Encrypt the data we read
-                    b64_encrypted_data = b64encode(encrypted_data)
-                    file_out.write(b64_encrypted_data)  # Write the encrypted data to the output file
+                    file_out.write(encrypted_data)  # Write the encrypted data to the output file
                     data = file_content.read(BUFFER_SIZE)  # Read some more of the file to see if there is any more left
-
-                
 
                 # Get and write the tag for decryption verification
                 tag = cipher.digest()  # Signal to the cipher that we are done and get the tag
+                # flash(tag)
                 file_out.write(tag)
 
 
                 # Close out file
                 file_out.close()
                 
+            
         return encrypted_output_path 
     
 @profile_function
@@ -82,8 +81,7 @@ def aesImageEncryption(input_image, cipher, nonce, encrypted_output_path):
                 data = file_content.read(BUFFER_SIZE) 
                 while len(data) != 0: 
                     encrypted_data = cipher.encrypt(data) 
-                    b64_encrypted_data = b64encode(encrypted_data)
-                    file_out.write(b64_encrypted_data) 
+                    file_out.write(encrypted_data) 
                     data = file_content.read(BUFFER_SIZE) 
 
                 tag = cipher.digest() 
@@ -116,12 +114,10 @@ def aesPPMImageEncryption(ppm_input_image, cipher, nonce, encrypted_ppm_output_p
                 
                 while len(data) != 0: 
                     encrypted_data = cipher.encrypt(data) 
-                    b64_encrypted_data = b64encode(encrypted_data)
-                    file_out.write(b64_encrypted_data)  
+                    file_out.write(encrypted_data)  
                     data = file_content.read(BUFFER_SIZE)  
 
                 tag = cipher.digest()
                 
                 file_out.close()
-                
         return encrypted_ppm_output_path 
